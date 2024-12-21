@@ -17,5 +17,8 @@
   <ItemGroup>
     <EmbeddedResource Include="Database/Scripts/**/*.sql" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="IntegrationTests" />
+  </ItemGroup>
 
 </Project>
