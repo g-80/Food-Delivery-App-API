@@ -17,8 +17,8 @@ public class FoodPlacesRepository : BaseRepo
                 name,
                 description,
                 category,
-                ST_Y(location) AS latitude,
-                ST_X(location) AS longitude,
+                latitude,
+                longitude,
                 ST_Distance(location::geography, ST_POINT(@Longitude, @Latitude, 4326)::geography) AS distance
             FROM food_places
             WHERE ST_DWithin(location::geography, ST_POINT(@Longitude, @Latitude, 4326)::geography, @Distance)
@@ -38,8 +38,8 @@ public class FoodPlacesRepository : BaseRepo
                 name,
                 description,
                 category,
-                ST_Y(location) AS latitude,
-                ST_X(location) AS longitude,
+                latitude,
+                longitude,
                 ST_Distance(location::geography, ST_POINT(@Longitude, @Latitude, 4326)::geography) AS distance
             FROM food_places
             WHERE search_vector @@ plainto_tsquery('english', @SearchQuery)
@@ -59,8 +59,8 @@ public class FoodPlacesRepository : BaseRepo
                 name,
                 description,
                 category,
-                ST_Y(location) AS latitude,
-                ST_X(location) AS longitude
+                latitude,
+                longitude
             FROM food_places
             WHERE id = @Id
             ";

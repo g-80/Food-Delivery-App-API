@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 public class FoodPlace
 {
     public int Id { get; set; }
