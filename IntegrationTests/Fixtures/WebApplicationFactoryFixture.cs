@@ -26,6 +26,8 @@ public class WebApplicationFactoryFixture : IAsyncLifetime
             {
                 services.RemoveAll(typeof(FoodPlacesRepository));
                 services.AddTransient(_ => new FoodPlacesRepository(_connectionString));
+                services.RemoveAll(typeof(ItemsRepository));
+                services.AddTransient(_ => new ItemsRepository(_connectionString));
             });
         });
         Client = _factory.CreateClient();
@@ -45,6 +47,14 @@ public class WebApplicationFactoryFixture : IAsyncLifetime
         using (var connection = new NpgsqlConnection(builder.ConnectionString))
         {
             connection.Execute($"DROP DATABASE IF EXISTS {DbName} WITH (FORCE)");
-        };
+        }
+        ;
+    }
+
+    public T GetRepoFromServices<T>() where T : notnull
+    {
+        using var scope = _factory.Services.CreateScope();
+        var repository = scope.ServiceProvider.GetRequiredService<T>();
+        return repository;
     }
 }
