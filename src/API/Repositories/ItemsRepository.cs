@@ -24,7 +24,7 @@ public class ItemsRepository : BaseRepo
 
     public async Task<int> CreateItem(CreateItemRequest itemReq)
     {
-        var parameters = new { itemReq.Name, itemReq.Description, itemReq.FoodPlaceId, itemReq.Price, itemReq.isAvailable };
+        var parameters = new { itemReq.Name, itemReq.Description, itemReq.FoodPlaceId, itemReq.Price, itemReq.IsAvailable };
         const string sql = @"
             INSERT INTO food_places_items(name, description, food_place_id, price, is_available)
             VALUES

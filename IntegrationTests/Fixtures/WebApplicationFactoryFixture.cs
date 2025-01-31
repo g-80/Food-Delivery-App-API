@@ -31,12 +31,17 @@ public class WebApplicationFactoryFixture : IAsyncLifetime
             });
         });
         Client = _factory.CreateClient();
-        _dbInitializer = new DatabaseInitializer(_connectionString);
+        _dbInitializer = new DatabaseInitializer(_connectionString, false);
     }
 
     public async Task InitializeAsync()
     {
         await _dbInitializer.InitializeAsync();
+        var foodPlaceRepo = GetRepoFromServices<FoodPlacesRepository>();
+        foreach (var foodPlace in FoodPlacesFixtures.GetFoodPlacesFixtures())
+        {
+            await foodPlaceRepo.CreateFoodPlace(foodPlace);
+        }
     }
 
     public async Task DisposeAsync()

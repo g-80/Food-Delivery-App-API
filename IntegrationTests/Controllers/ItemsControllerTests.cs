@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using FluentAssertions;
+using Microsoft.AspNetCore.Mvc;
 
 public class ItemsControllerTests : IClassFixture<WebApplicationFactoryFixture>
 {
@@ -14,37 +15,105 @@ public class ItemsControllerTests : IClassFixture<WebApplicationFactoryFixture>
     public async Task OnCreateItem_ShouldCreateItemAndReturnId()
     {
         // Arrange
-        CreateItemRequest itemReq = new CreateItemRequest { Name = "Vegetarian Pizza", FoodPlaceId = 1, Price = 450 };
+        var itemReq = new CreateItemRequest
+        {
+            Name = "Vegetarian Pizza",
+            FoodPlaceId = 1,
+            Price = 450,
+            IsAvailable = true,
+            Description = "Delicious veggie pizza"
+        };
+
         // Act
         var response = await _factory.Client.PostAsJsonAsync(HttpHelper.Urls.Items, itemReq);
-        var result = await response.Content.ReadFromJsonAsync<int>();
+        var createdId = await response.Content.ReadFromJsonAsync<int>();
+
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
-        result.Should().NotBe(0);
+        createdId.Should().BeGreaterThan(0);
+
+        // Verify the created item
+        var repo = _factory.GetRepoFromServices<ItemsRepository>();
+        var createdItem = await repo.GetItemById(createdId);
+        createdItem.Should().NotBeNull();
+        createdItem.Name.Should().Be(itemReq.Name);
+        createdItem.Description.Should().Be(itemReq.Description);
+        createdItem.Price.Should().Be(itemReq.Price);
+        createdItem.FoodPlaceId.Should().Be(itemReq.FoodPlaceId);
+        createdItem.IsAvailable.Should().Be(itemReq.IsAvailable);
     }
 
-    [Fact]
-    public async Task OnCreateInvalidItem_ShouldReturnBadRequest()
+    [Theory]
+    [InlineData("Ab")]
+    [InlineData("ThisNameIsWayTooLongForTheMaximumLength")]
+    [InlineData("")]
+    public async Task OnCreateItem_WithInvalidName_ShouldReturnBadRequest(string name)
     {
         // Arrange
-        CreateItemRequest itemReq = new CreateItemRequest { Name = "Vegetarian Pizza", FoodPlaceId = 1, Price = -500 };
+        var itemReq = new CreateItemRequest
+        {
+            Name = name,
+            FoodPlaceId = 1,
+            Price = 450,
+            IsAvailable = true
+        };
+
         // Act
         var response = await _factory.Client.PostAsJsonAsync(HttpHelper.Urls.Items, itemReq);
+        var errors = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
+        errors.Errors.Should().ContainKey("Name");
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-100)]
+    public async Task OnCreateItem_WithInvalidPrice_ShouldReturnBadRequest(int price)
+    {
+        // Arrange
+        var itemReq = new CreateItemRequest
+        {
+            Name = "Amazing Pizza",
+            FoodPlaceId = 1,
+            Price = price,
+            IsAvailable = true
+        };
+
+        // Act
+        var response = await _factory.Client.PostAsJsonAsync(HttpHelper.Urls.Items, itemReq);
+        var errors = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+
+        // Assert
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
+        errors.Errors.Should().ContainKey("Price");
     }
 
     [Fact]
     public async Task OnGetItem_ShouldReturnExpectedItem()
     {
         // Arrange
+        var repo = _factory.GetRepoFromServices<ItemsRepository>();
+        var testItem = new CreateItemRequest
+        {
+            Name = "Test Pizza",
+            FoodPlaceId = 1,
+            Price = 450,
+            IsAvailable = true
+        };
+        var itemId = await repo.CreateItem(testItem);
 
         // Act
-        var response = await _factory.Client.GetAsync(HttpHelper.Urls.Items + "1");
+        var response = await _factory.Client.GetAsync(HttpHelper.Urls.Items + itemId);
         var result = await response.Content.ReadFromJsonAsync<Item>();
+
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
-        result.Should().NotBe(null);
+        result.Should().NotBeNull();
+        result.Name.Should().Be(testItem.Name);
+        result.Price.Should().Be(testItem.Price);
+        result.IsAvailable.Should().Be(testItem.IsAvailable);
     }
 
     [Fact]
@@ -53,7 +122,7 @@ public class ItemsControllerTests : IClassFixture<WebApplicationFactoryFixture>
         // Arrange
 
         // Act
-        var response = await _factory.Client.GetAsync(HttpHelper.Urls.Items + "9999");
+        var response = await _factory.Client.GetAsync(HttpHelper.Urls.Items + "999999");
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
     }
@@ -63,14 +132,22 @@ public class ItemsControllerTests : IClassFixture<WebApplicationFactoryFixture>
     {
         // Arrange
         var repo = _factory.GetRepoFromServices<ItemsRepository>();
-        Item before = await repo.GetItemById(2);
+        var testItem = new CreateItemRequest
+        {
+            Name = "Test Pizza",
+            FoodPlaceId = 1,
+            Price = 450,
+            IsAvailable = true
+        };
+        var itemId = await repo.CreateItem(testItem);
+        Item before = await repo.GetItemById(itemId);
         before.IsAvailable.Should().BeTrue();
         UpdateItemRequest itemReq = new UpdateItemRequest { Name = before.Name, Id = before.Id, IsAvailable = false, Price = before.Price };
         // Act
         var response = await _factory.Client.PutAsJsonAsync(HttpHelper.Urls.Items, itemReq);
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
-        Item after = await repo.GetItemById(2);
+        Item after = await repo.GetItemById(before.Id);
         after.IsAvailable.Should().BeFalse();
     }
 
@@ -79,12 +156,23 @@ public class ItemsControllerTests : IClassFixture<WebApplicationFactoryFixture>
     {
         // Arrange
         var repo = _factory.GetRepoFromServices<ItemsRepository>();
-        Item before = await repo.GetItemById(2);
+        var testItem = new CreateItemRequest
+        {
+            Name = "Test Pizza",
+            FoodPlaceId = 1,
+            Price = 450,
+            IsAvailable = true
+        };
+        var itemId = await repo.CreateItem(testItem);
+        Item before = await repo.GetItemById(itemId);
+        before.Price.Should().Be(450);
         UpdateItemRequest itemReq = new UpdateItemRequest { Name = before.Name, Id = before.Id, IsAvailable = before.IsAvailable, Price = -450 };
         // Act
         var response = await _factory.Client.PutAsJsonAsync(HttpHelper.Urls.Items, itemReq);
+        var errors = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
+        errors.Errors.Should().ContainKey("Price");
     }
 
 }

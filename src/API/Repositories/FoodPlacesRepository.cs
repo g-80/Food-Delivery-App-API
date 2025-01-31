@@ -26,7 +26,8 @@ public class FoodPlacesRepository : BaseRepo
         using (var connection = new NpgsqlConnection(_connectionString))
         {
             return (await connection.QueryAsync<FoodPlace>(sql, parameters)).ToList();
-        };
+        }
+        ;
     }
 
     public async Task<IEnumerable<FoodPlace>> SearchFoodPlacesWithinDistance(SearchFoodPlacesRequest query)
@@ -48,7 +49,8 @@ public class FoodPlacesRepository : BaseRepo
         using (var connection = new NpgsqlConnection(_connectionString))
         {
             return (await connection.QueryAsync<FoodPlace>(sql, parameters)).ToList();
-        };
+        }
+        ;
     }
     public async Task<FoodPlace?> GetFoodPlace(int id)
     {
@@ -67,6 +69,23 @@ public class FoodPlacesRepository : BaseRepo
         using (var connection = new NpgsqlConnection(_connectionString))
         {
             return await connection.QuerySingleOrDefaultAsync<FoodPlace>(sql, parameters);
-        };
+        }
+        ;
+    }
+
+    public async Task<int> CreateFoodPlace(FoodPlace foodPlace)
+    {
+        var parameters = new { foodPlace.Name, foodPlace.Description, foodPlace.Category, foodPlace.Latitude, foodPlace.Longitude };
+        const string sql = @"
+            INSERT INTO food_places(name, description, category, latitude, longitude)
+            VALUES
+            (@Name, @Description, @Category, @Latitude, @Longitude)
+            RETURNING id
+        ";
+        using (var connection = new NpgsqlConnection(_connectionString))
+        {
+            return await connection.ExecuteScalarAsync<int>(sql, parameters);
+        }
+        ;
     }
 }

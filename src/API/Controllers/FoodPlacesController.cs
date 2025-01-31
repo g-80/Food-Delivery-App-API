@@ -30,8 +30,13 @@ public class FoodPlacesController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    public async Task<IActionResult> GetFoodPlaceId([FromRoute] int id)
+    public async Task<IActionResult> GetFoodPlace([FromRoute] int id)
     {
+        if (id <= 0)
+        {
+            ModelState.AddModelError("id", "Invalid id");
+            return BadRequest(ModelState);
+        }
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
         FoodPlace? result = await _foodPlacesRepo.GetFoodPlace(id);

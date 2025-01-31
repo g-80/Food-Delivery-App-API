@@ -13,5 +13,5 @@ public class CreateItemRequest
     [Range(1, 10000, ErrorMessage = "Invalid price")]
     public int Price { get; set; }
     [Required]
-    public bool isAvailable { get; set; }
+    public bool IsAvailable { get; set; }
 }
