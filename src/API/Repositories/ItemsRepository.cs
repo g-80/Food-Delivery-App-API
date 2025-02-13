@@ -7,11 +7,11 @@ public class ItemsRepository : BaseRepo
     {
     }
 
-    public async Task<Item?> GetItemById(int id)
+    public virtual async Task<Item?> GetItemById(int id)
     {
         var parameters = new { Id = id };
         const string sql = @"
-            SELECT id, name, description, food_place_id AS FoodPlaceId, created_at AS CreatedAt, is_available AS IsAvailable, price
+            SELECT *
             FROM food_places_items
             WHERE id = @Id
             ";

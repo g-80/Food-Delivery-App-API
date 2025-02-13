@@ -1,4 +1,4 @@
-public class BaseRepo
+public abstract class BaseRepo
 {
     protected readonly string _connectionString;
     public BaseRepo(string connectionString)

@@ -15,7 +15,7 @@ public class FoodPlacesControllerTests : IClassFixture<WebApplicationFactoryFixt
     public async Task OnGetFoodPlace_ShouldReturnExpectedFoodPlace()
     {
         // Arrange
-        var fixtures = FoodPlacesFixtures.GetFoodPlacesFixtures();
+        var fixtures = Fixtures.foodPlacesFixtures;
         int seededDataId = 1;
         // Act
         var response = await _factory.Client.GetAsync(HttpHelper.Urls.GetFoodPlace + seededDataId);
@@ -32,7 +32,7 @@ public class FoodPlacesControllerTests : IClassFixture<WebApplicationFactoryFixt
     public async Task OnGetNonExistentFoodPlace_ShouldReturnNotFound()
     {
         // Arrange
-        int fixturesCount = FoodPlacesFixtures.GetFoodPlacesFixtures().Count;
+        int fixturesCount = Fixtures.foodPlacesFixtures.Count;
         // Act
         var response = await _factory.Client.GetAsync(HttpHelper.Urls.GetFoodPlace + (fixturesCount + 1));
         // Assert
@@ -60,8 +60,8 @@ public class FoodPlacesControllerTests : IClassFixture<WebApplicationFactoryFixt
         string searchQuery = "greek";
         var query = new Dictionary<string, string>
         {
-            ["latitude"] = $"{FoodPlacesFixtures.locationLatLong.Item1}",
-            ["longitude"] = $"{FoodPlacesFixtures.locationLatLong.Item2}",
+            ["latitude"] = $"{Fixtures.locationLatLong.Item1}",
+            ["longitude"] = $"{Fixtures.locationLatLong.Item2}",
             ["searchquery"] = searchQuery
         };
         // Act
@@ -82,8 +82,8 @@ public class FoodPlacesControllerTests : IClassFixture<WebApplicationFactoryFixt
         // Arrange
         var query = new Dictionary<string, string>
         {
-            ["latitude"] = $"{FoodPlacesFixtures.locationLatLong.Item1}",
-            ["longitude"] = $"{FoodPlacesFixtures.locationLatLong.Item2}",
+            ["latitude"] = $"{Fixtures.locationLatLong.Item1}",
+            ["longitude"] = $"{Fixtures.locationLatLong.Item2}",
             ["searchquery"] = searchQuery
         };
         // Act
@@ -102,8 +102,8 @@ public class FoodPlacesControllerTests : IClassFixture<WebApplicationFactoryFixt
         // Arrange
         var query = new Dictionary<string, string>
         {
-            ["latitude"] = $"{FoodPlacesFixtures.locationLatLong.Item1}",
-            ["longitude"] = $"{FoodPlacesFixtures.locationLatLong.Item2}",
+            ["latitude"] = $"{Fixtures.locationLatLong.Item1}",
+            ["longitude"] = $"{Fixtures.locationLatLong.Item2}",
         };
         // Act
         var response = await _factory.Client.GetAsync(QueryHelpers.AddQueryString(HttpHelper.Urls.GetNearbyFoodPlaces, query));
@@ -111,7 +111,7 @@ public class FoodPlacesControllerTests : IClassFixture<WebApplicationFactoryFixt
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
-        result.Count.Should().Be(FoodPlacesFixtures.GetFoodPlacesFixtures().Count);
+        result.Count.Should().Be(Fixtures.foodPlacesFixtures.Count);
     }
 
     [Fact]

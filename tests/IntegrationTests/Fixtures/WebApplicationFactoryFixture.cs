@@ -28,6 +28,10 @@ public class WebApplicationFactoryFixture : IAsyncLifetime
                 services.AddTransient(_ => new FoodPlacesRepository(_connectionString));
                 services.RemoveAll(typeof(ItemsRepository));
                 services.AddTransient(_ => new ItemsRepository(_connectionString));
+                services.RemoveAll(typeof(QuotesRepository));
+                services.AddTransient(_ => new QuotesRepository(_connectionString));
+                services.RemoveAll(typeof(QuotesItemsRepository));
+                services.AddTransient(_ => new QuotesItemsRepository(_connectionString));
             });
         });
         Client = _factory.CreateClient();
@@ -38,9 +42,14 @@ public class WebApplicationFactoryFixture : IAsyncLifetime
     {
         await _dbInitializer.InitializeAsync();
         var foodPlaceRepo = GetRepoFromServices<FoodPlacesRepository>();
-        foreach (var foodPlace in FoodPlacesFixtures.GetFoodPlacesFixtures())
+        foreach (var foodPlace in Fixtures.foodPlacesFixtures)
         {
             await foodPlaceRepo.CreateFoodPlace(foodPlace);
+        }
+        var itemRepo = GetRepoFromServices<ItemsRepository>();
+        foreach (var item in Fixtures.itemsFixtures)
+        {
+            Fixtures.itemsFixturesIds.Add(await itemRepo.CreateItem(item));
         }
     }
 
