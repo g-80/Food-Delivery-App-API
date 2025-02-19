@@ -4,16 +4,11 @@ using Microsoft.AspNetCore.Mvc;
 [Route("api/quotes")]
 public class QuotesController : ControllerBase
 {
-    private readonly QuotesRepository _quotesRepo;
-    private readonly QuotesItemsRepository _quotesItemsRepo;
-    private readonly PricingService _pricingService;
-    private readonly QuoteTokenService _quoteTokenService;
-    public QuotesController(QuotesRepository quotesRepo, QuotesItemsRepository quotesItemsRepo, PricingService pricingService, QuoteTokenService quoteTokenService)
+    private readonly QuoteService _quoteService;
+
+    public QuotesController(QuoteService quoteService)
     {
-        _quotesRepo = quotesRepo;
-        _quotesItemsRepo = quotesItemsRepo;
-        _pricingService = pricingService;
-        _quoteTokenService = quoteTokenService;
+        _quoteService = quoteService;
     }
 
     [HttpPost]
@@ -21,23 +16,9 @@ public class QuotesController : ControllerBase
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
-        DateTime expiry = DateTime.UtcNow.AddMinutes(5);
-        var (itemsPrice, totalPrice) = await _pricingService.CalculatePriceAsync(req.Items);
-        QuoteTokenPayload payload = new()
-        {
-            UserId = req.CustomerId,
-            Items = req.Items,
-            TotalPrice = totalPrice,
-            ExpiresAt = expiry
-        };
-        string token = _quoteTokenService.GenerateQuoteToken(payload);
-        int quoteId = await _quotesRepo.CreateQuote(req, totalPrice, expiry);
-        for (int i = 0; i < req.Items.Count; i++)
-        {
-            await _quotesItemsRepo.CreateQuoteItem(req.Items[i], quoteId, itemsPrice[i]);
-        }
-        QuoteResponse res = new() { QuoteId = quoteId, QuoteToken = token, QuoteTokenPayload = payload };
-        return Ok(res);
+
+        var response = await _quoteService.CreateQuoteAsync(req);
+        return Ok(response);
     }
 
     [HttpPatch("use/{id:int}")]
@@ -46,7 +27,7 @@ public class QuotesController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        int _ = await _quotesRepo.SetQuoteAsUsed(id);
+        int _ = await _quoteService.SetQuoteAsUsedAsync(id);
         return Ok();
     }
 
@@ -60,7 +41,7 @@ public class QuotesController : ControllerBase
         }
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
-        Quote? result = await _quotesRepo.GetQuoteById(id);
+        Quote? result = await _quoteService.GetQuoteByIdAsync(id);
         if (result == null)
         {
             return NotFound();

@@ -14,4 +14,9 @@ internal static class Fixtures
     };
     // for future use of uuids generated from db
     public static List<int> itemsFixturesIds = new List<int>();
+    public static List<ItemRequest> itemRequests = new List<ItemRequest>
+    {
+        new() { ItemId = 1, Quantity = 2 },
+        new() { ItemId = 2, Quantity = 1 }
+    };
 }

@@ -16,11 +16,7 @@ public class QuotesControllerTests : IClassFixture<WebApplicationFactoryFixture>
         var request = new CustomerItemsRequest
         {
             CustomerId = 1,
-            Items = new List<ItemRequest>
-            {
-                new() { ItemId = Fixtures.itemsFixturesIds[0], Quantity = 2 },
-                new() { ItemId = Fixtures.itemsFixturesIds[1], Quantity = 1 }
-            }
+            Items = Fixtures.itemRequests
         };
 
         // Act
@@ -69,7 +65,7 @@ public class QuotesControllerTests : IClassFixture<WebApplicationFactoryFixture>
         var repo = _factory.GetRepoFromServices<QuotesRepository>();
         var expiry = DateTime.UtcNow.AddMinutes(5);
         var price = Fixtures.itemsFixtures[0].Price;
-        int quoteId = await repo.CreateQuote(request, price, expiry);
+        int quoteId = await repo.CreateQuote(request.CustomerId, price, expiry);
 
         // Act
         var response = await _factory.Client.GetAsync(HttpHelper.Urls.Quotes + quoteId);
@@ -106,7 +102,7 @@ public class QuotesControllerTests : IClassFixture<WebApplicationFactoryFixture>
         var repo = _factory.GetRepoFromServices<QuotesRepository>();
         var expiry = DateTime.UtcNow.AddMinutes(5);
         var price = Fixtures.itemsFixtures[0].Price;
-        int quoteId = await repo.CreateQuote(request, price, expiry);
+        int quoteId = await repo.CreateQuote(request.CustomerId, price, expiry);
 
         // Act
         var response = await _factory.Client.PatchAsync(HttpHelper.Urls.UseQuote + quoteId, null);

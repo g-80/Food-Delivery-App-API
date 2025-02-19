@@ -32,6 +32,10 @@ public class WebApplicationFactoryFixture : IAsyncLifetime
                 services.AddTransient(_ => new QuotesRepository(_connectionString));
                 services.RemoveAll(typeof(QuotesItemsRepository));
                 services.AddTransient(_ => new QuotesItemsRepository(_connectionString));
+                services.RemoveAll(typeof(OrdersRepository));
+                services.AddTransient(_ => new OrdersRepository(_connectionString));
+                services.RemoveAll(typeof(OrderItemsRepository));
+                services.AddTransient(_ => new OrderItemsRepository(_connectionString));
             });
         });
         Client = _factory.CreateClient();

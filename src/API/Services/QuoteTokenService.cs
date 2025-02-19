@@ -19,29 +19,29 @@ public class QuoteTokenService
         return $"{Convert.ToBase64String(Encoding.UTF8.GetBytes(jsonPayload))}.{signature}";
     }
 
-    // public bool ValidateQuoteToken(string token, out QuoteTokenPayload payload)
-    // {
-    //     payload = null;
+    public bool ValidateQuoteToken(string token, out QuoteTokenPayload payload)
+    {
+        payload = null;
 
-    //     var parts = token.Split('.');
-    //     if (parts.Length != 2) return false;
+        var parts = token.Split('.');
+        if (parts.Length != 2) return false;
 
-    //     string jsonPayload;
-    //     try
-    //     {
-    //         jsonPayload = Encoding.UTF8.GetString(Convert.FromBase64String(parts[0]));
-    //         payload = JsonSerializer.Deserialize<QuoteTokenPayload>(jsonPayload);
-    //     }
-    //     catch
-    //     {
-    //         return false;
-    //     }
+        string jsonPayload;
+        try
+        {
+            jsonPayload = Encoding.UTF8.GetString(Convert.FromBase64String(parts[0]));
+            payload = JsonSerializer.Deserialize<QuoteTokenPayload>(jsonPayload);
+        }
+        catch
+        {
+            return false;
+        }
 
-    //     string expectedSignature = GenerateHmacSha256(jsonPayload, _secretKey);
-    //     if (expectedSignature != parts[1]) return false;
+        string expectedSignature = GenerateHmacSha256(jsonPayload, _secretKey);
+        if (expectedSignature != parts[1]) return false;
 
-    //     return payload.ExpiresAt > DateTime.UtcNow;
-    // }
+        return payload.ExpiresAt > DateTime.UtcNow;
+    }
 
     private string GenerateHmacSha256(string data, string key)
     {

@@ -11,6 +11,10 @@ builder.Services.AddSingleton(_ => new QuotesRepository(builder.Configuration.Ge
 builder.Services.AddSingleton(_ => new QuotesItemsRepository(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddSingleton(_ => new QuoteTokenService(builder.Configuration["SecretKeys:QuoteToken"]));
 builder.Services.AddSingleton<PricingService>();
+builder.Services.AddSingleton<QuoteService>();
+builder.Services.AddSingleton(_ => new OrdersRepository(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddSingleton(_ => new OrderItemsRepository(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddSingleton<OrderService>();
 builder.Services.AddSingleton(_ => new DatabaseInitializer(builder.Configuration.GetConnectionString("DefaultConnection")));
 var app = builder.Build();
 

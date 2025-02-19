@@ -22,13 +22,13 @@ public class QuotesRepository : BaseRepo
         ;
     }
 
-    public async Task<int> CreateQuote(CustomerItemsRequest quoteRequest, int totalPrice, DateTime expiry)
+    public async Task<int> CreateQuote(int customerId, int totalPrice, DateTime expiry)
     {
-        var parameters = new { quoteRequest.CustomerId, totalPrice, expiry };
+        var parameters = new { customerId, totalPrice, expiry };
         const string sql = @"
             INSERT INTO quotes(customer_id, price, expires_at)
             VALUES
-            (@CustomerId, @totalPrice, @expiry)
+            (@customerId, @totalPrice, @expiry)
             RETURNING id
         ";
         using (var connection = new NpgsqlConnection(_connectionString))

@@ -276,7 +276,7 @@ CREATE TABLE public.orders (
     customer_id integer NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     total_price integer NOT NULL,
-    is_cancelled boolean NOT NULL
+    is_cancelled boolean NOT NULL DEFAULT FALSE
 );
 
 
@@ -472,8 +472,8 @@ ALTER TABLE ONLY public.order_items
 -- Name: orders orders_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.orders
-    ADD CONSTRAINT orders_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.users(id) NOT VALID;
+-- ALTER TABLE ONLY public.orders
+--     ADD CONSTRAINT orders_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.users(id) NOT VALID;
 
 
 -- Completed on 2024-12-18 14:16:34

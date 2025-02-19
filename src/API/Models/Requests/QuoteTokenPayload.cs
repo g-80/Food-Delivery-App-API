@@ -1,7 +1,15 @@
+using System.ComponentModel.DataAnnotations;
+
 public class QuoteTokenPayload
 {
-    public int UserId { get; set; }
+    [Required]
+    public int CustomerId { get; set; }
+    [Required]
+    [MinLength(1, ErrorMessage = "Items cannot be empty")]
     public List<ItemRequest> Items { get; set; }
+    [Required]
+    [Range(1, 100000, ErrorMessage = "Total price must be greater than 0")]
     public int TotalPrice { get; set; }
+    [Required]
     public DateTime ExpiresAt { get; set; }
 }

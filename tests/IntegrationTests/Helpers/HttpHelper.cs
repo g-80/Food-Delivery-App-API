@@ -8,5 +8,7 @@ internal class HttpHelper
         internal readonly static string Items = "/api/items/";
         internal readonly static string Quotes = "/api/quotes/";
         internal readonly static string UseQuote = "/api/quotes/use/";
+        internal readonly static string Orders = "/api/orders/";
+        internal readonly static string CancelOrder = "/api/orders/cancel/";
     }
 }
