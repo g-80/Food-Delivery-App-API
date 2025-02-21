@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-public class ItemRequest
+public class RequestedItem
 {
     [Required]
     public int ItemId { get; set; }

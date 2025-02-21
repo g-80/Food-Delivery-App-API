@@ -23,7 +23,7 @@ public class FoodPlacesControllerTests : IClassFixture<WebApplicationFactoryFixt
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
         result.Should().NotBeNull();
-        result.Id.Should().Be(seededDataId);
+        result!.Id.Should().Be(seededDataId);
         result.Name.Should().Be(fixtures[0].Name);
         result.Category.Should().Be(fixtures[0].Category);
     }
@@ -50,7 +50,7 @@ public class FoodPlacesControllerTests : IClassFixture<WebApplicationFactoryFixt
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
-        errors.Extensions.Should().ContainKey("id");
+        errors!.Extensions.Should().ContainKey("id");
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public class FoodPlacesControllerTests : IClassFixture<WebApplicationFactoryFixt
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
-        errors.Errors.Should().ContainKey("SearchQuery");
+        errors!.Errors.Should().ContainKey("SearchQuery");
 
     }
 
@@ -111,7 +111,7 @@ public class FoodPlacesControllerTests : IClassFixture<WebApplicationFactoryFixt
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
-        result.Count.Should().Be(Fixtures.foodPlacesFixtures.Count);
+        result!.Count.Should().Be(Fixtures.foodPlacesFixtures.Count);
     }
 
     [Fact]
@@ -129,6 +129,6 @@ public class FoodPlacesControllerTests : IClassFixture<WebApplicationFactoryFixt
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
-        (errors.Errors.ContainsKey("Latitude") || errors.Errors.ContainsKey("Longitude")).Should().BeTrue();
+        (errors!.Errors.ContainsKey("Latitude") || errors.Errors.ContainsKey("Longitude")).Should().BeTrue();
     }
 }

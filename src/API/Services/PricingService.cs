@@ -7,7 +7,7 @@ public class PricingService
         _itemsRepository = itemsRepository;
     }
 
-    public async Task<(List<int>, int)> CalculatePriceAsync(List<ItemRequest> items)
+    public async Task<(List<int>, int)> CalculatePriceAsync(List<RequestedItem> items)
     {
         int totalPrice = 0;
         List<int> prices = new();

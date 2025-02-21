@@ -34,7 +34,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactoryFixture>
             TotalPrice = 2070
         };
 
-        var request = new OrderRequest
+        var request = new CreateOrderRequest
         {
             QuoteId = quoteId,
             QuoteToken = _tokenService.GenerateQuoteToken(payload),
@@ -81,7 +81,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactoryFixture>
             TotalPrice = 2070
         };
 
-        var request = new OrderRequest
+        var request = new CreateOrderRequest
         {
             QuoteId = 1,
             QuoteToken = "invalid.token",
@@ -107,7 +107,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactoryFixture>
             TotalPrice = 2070
         };
 
-        var request = new OrderRequest
+        var request = new CreateOrderRequest
         {
             QuoteId = 999999999,
             QuoteToken = _tokenService.GenerateQuoteToken(payload),
@@ -155,7 +155,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactoryFixture>
         returnedOrder.CustomerId.Should().Be(order.CustomerId);
     }
 
-    private async Task<(int, List<ItemRequest>)> CreateTestQuoteAndQuoteItems()
+    private async Task<(int, List<RequestedItem>)> CreateTestQuoteAndQuoteItems()
     {
         int customerId = 1;
         var quoteItems = Fixtures.itemRequests;
@@ -175,16 +175,12 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactoryFixture>
 
     private async Task<Order?> CreateTestOrderAndOrderItems()
     {
-        var orderData = new CustomerItemsRequest
-        {
-            CustomerId = 1,
-            Items = Fixtures.itemRequests
-        };
-        List<int> prices = new() { Fixtures.itemsFixtures[0].Price * orderData.Items[0].Quantity, Fixtures.itemsFixtures[1].Price * orderData.Items[1].Quantity };
+        var items = Fixtures.itemRequests;
+        List<int> prices = new() { Fixtures.itemsFixtures[0].Price * items[0].Quantity, Fixtures.itemsFixtures[1].Price * items[1].Quantity };
         int totalPrice = prices.Sum();
-        var orderId = await _ordersRepo.CreateOrder(orderData, totalPrice);
+        var orderId = await _ordersRepo.CreateOrder(1, totalPrice);
 
-        await Task.WhenAll(orderData.Items.Select((item, i) =>
+        await Task.WhenAll(items.Select((item, i) =>
             _orderItemsRepo.CreateOrderItem(
                 item,
                 orderId,

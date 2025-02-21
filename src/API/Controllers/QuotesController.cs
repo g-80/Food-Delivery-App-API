@@ -12,7 +12,7 @@ public class QuotesController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateQuote([FromBody] CustomerItemsRequest req)
+    public async Task<IActionResult> CreateQuote([FromBody] CreateQuoteRequest req)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);

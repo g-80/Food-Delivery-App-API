@@ -28,19 +28,13 @@ public class OrderService
         if (!quoteItems.Any())
             return 0;
 
-        var orderData = new CustomerItemsRequest
-        {
-            CustomerId = payload.CustomerId,
-            Items = payload.Items
-        };
-
-        var orderId = await _ordersRepo.CreateOrder(orderData, payload.TotalPrice);
+        var orderId = await _ordersRepo.CreateOrder(payload.CustomerId, payload.TotalPrice);
         if (orderId == 0)
             return 0;
 
         await Task.WhenAll(quoteItems.Select(qItem =>
             _ordersItemsRepo.CreateOrderItem(
-                new ItemRequest { ItemId = qItem.ItemId, Quantity = qItem.Quantity },
+                new RequestedItem { ItemId = qItem.ItemId, Quantity = qItem.Quantity },
                 orderId,
                 qItem.TotalPrice
             )

@@ -6,7 +6,7 @@ public class QuoteTokenPayload
     public int CustomerId { get; set; }
     [Required]
     [MinLength(1, ErrorMessage = "Items cannot be empty")]
-    public List<ItemRequest> Items { get; set; }
+    public required List<RequestedItem> Items { get; set; }
     [Required]
     [Range(1, 100000, ErrorMessage = "Total price must be greater than 0")]
     public int TotalPrice { get; set; }

@@ -27,7 +27,7 @@ public class OrderItemsRepository : BaseRepo
         ;
     }
 
-    public async Task<int> CreateOrderItem(ItemRequest orderItemReq, int orderId, int totalPrice)
+    public async Task<int> CreateOrderItem(RequestedItem orderItemReq, int orderId, int totalPrice)
     {
         var parameters = new { orderId, orderItemReq.ItemId, orderItemReq.Quantity, totalPrice };
         const string sql = @"

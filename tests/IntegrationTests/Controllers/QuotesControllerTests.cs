@@ -13,7 +13,7 @@ public class QuotesControllerTests : IClassFixture<WebApplicationFactoryFixture>
     public async Task CreateQuote_ShouldReturnQuoteResponse()
     {
         // Arrange
-        var request = new CustomerItemsRequest
+        var request = new CreateQuoteRequest
         {
             CustomerId = 1,
             Items = Fixtures.itemRequests
@@ -54,10 +54,10 @@ public class QuotesControllerTests : IClassFixture<WebApplicationFactoryFixture>
     public async Task GetQuote_ShouldReturnQuote_WhenExists()
     {
         // Arrange
-        var request = new CustomerItemsRequest
+        var request = new CreateQuoteRequest
         {
             CustomerId = 1,
-            Items = new List<ItemRequest>
+            Items = new List<RequestedItem>
             {
                 new() { ItemId = Fixtures.itemsFixturesIds[0], Quantity = 1 }
             }
@@ -91,10 +91,10 @@ public class QuotesControllerTests : IClassFixture<WebApplicationFactoryFixture>
     public async Task UseQuote_ShouldMarkQuoteAsUsed()
     {
         // Arrange
-        var request = new CustomerItemsRequest
+        var request = new CreateQuoteRequest
         {
             CustomerId = 1,
-            Items = new List<ItemRequest>
+            Items = new List<RequestedItem>
             {
                 new() { ItemId = Fixtures.itemsFixturesIds[0], Quantity = 1 }
             }

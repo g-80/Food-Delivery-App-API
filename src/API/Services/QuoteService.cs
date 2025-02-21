@@ -17,7 +17,7 @@ public class QuoteService
         _quoteTokenService = quoteTokenService;
     }
 
-    public async Task<QuoteResponse> CreateQuoteAsync(CustomerItemsRequest req)
+    public async Task<QuoteResponse> CreateQuoteAsync(CreateQuoteRequest req)
     {
         var expiry = DateTime.UtcNow.AddMinutes(5);
         var (itemsPrices, totalPrice) = await _pricingService.CalculatePriceAsync(req.Items);

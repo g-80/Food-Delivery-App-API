@@ -16,7 +16,7 @@ public class QuoteTokenServiceTests
     public void GenerateQuoteToken_Should_Return_Valid_Token()
     {
         // Arrange
-        var payload = new QuoteTokenPayload { CustomerId = 123, Items = new List<ItemRequest> { new() { ItemId = 33, Quantity = 2 }, new() { ItemId = 44, Quantity = 1 } }, TotalPrice = 840, ExpiresAt = DateTime.UtcNow };
+        var payload = new QuoteTokenPayload { CustomerId = 123, Items = new List<RequestedItem> { new() { ItemId = 33, Quantity = 2 }, new() { ItemId = 44, Quantity = 1 } }, TotalPrice = 840, ExpiresAt = DateTime.UtcNow };
 
         // Act
         string token = _service.GenerateQuoteToken(payload);

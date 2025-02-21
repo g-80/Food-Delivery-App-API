@@ -16,7 +16,7 @@ public class PricingServiceTests
     public async Task CalculatePriceAsync_Should_Return_Correct_Totals()
     {
         // Arrange
-        var items = new List<ItemRequest>
+        var items = new List<RequestedItem>
         {
             new() { ItemId = 1, Quantity = 2 },
             new() { ItemId = 2, Quantity = 3 }
@@ -42,7 +42,7 @@ public class PricingServiceTests
     {
         // Arrange
         int id = 99;
-        var items = new List<ItemRequest> { new() { ItemId = id, Quantity = 1 } };
+        var items = new List<RequestedItem> { new() { ItemId = id, Quantity = 1 } };
 
 
         _itemsRepositoryMock.Setup(repo => repo.GetItemById(id))

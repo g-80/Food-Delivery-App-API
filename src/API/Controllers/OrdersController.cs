@@ -14,7 +14,7 @@ public class OrdersController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateOrder([FromBody] OrderRequest req)
+    public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest req)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
@@ -63,5 +63,4 @@ public class OrdersController : ControllerBase
 // TODO:
 // return a DTO for GetOrder
 // is using a model for id validation useful instead of just int
-// warnings in Models classes
 

@@ -22,7 +22,7 @@ public class QuotesItemsRepository : BaseRepo
         ;
     }
 
-    public async Task<int> CreateQuoteItem(ItemRequest itemReq, int quoteId, int totalPrice)
+    public async Task<int> CreateQuoteItem(RequestedItem itemReq, int quoteId, int totalPrice)
     {
         var parameters = new { quoteId, itemReq.ItemId, itemReq.Quantity, totalPrice };
         const string sql = @"

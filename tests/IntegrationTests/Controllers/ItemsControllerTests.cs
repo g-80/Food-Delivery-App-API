@@ -132,7 +132,7 @@ public class ItemsControllerTests : IClassFixture<WebApplicationFactoryFixture>
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
         var repo = _factory.GetRepoFromServices<ItemsRepository>();
-        Item after = await repo.GetItemById(id);
+        Item? after = await repo.GetItemById(id);
         after!.IsAvailable.Should().BeFalse();
     }
 

@@ -4,9 +4,9 @@ public class CreateItemRequest
 {
     [Required]
     [StringLength(30, MinimumLength = 3)]
-    public string Name { get; set; } = string.Empty;
+    public required string Name { get; set; }
     [MaxLength(100)]
-    public string? Description { get; set; } = string.Empty;
+    public string? Description { get; set; }
     [Required]
     public int FoodPlaceId { get; set; }
     [Required]

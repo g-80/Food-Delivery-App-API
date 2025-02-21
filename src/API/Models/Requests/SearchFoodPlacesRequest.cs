@@ -14,10 +14,10 @@ public class SearchFoodPlacesRequest
 
     [Required]
     [StringLength(50, MinimumLength = 3)]
-    public string SearchQuery
+    public required string SearchQuery
     {
         get => _searchQuery;
-        set => _searchQuery = value?.Trim();
+        set => _searchQuery = value.Trim();
     }
 
 }

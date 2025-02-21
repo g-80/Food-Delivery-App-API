@@ -22,9 +22,9 @@ public class OrdersRepository : BaseRepo
         ;
     }
 
-    public async Task<int> CreateOrder(CustomerItemsRequest req, int totalPrice)
+    public async Task<int> CreateOrder(int customerId, int totalPrice)
     {
-        var parameters = new { req.CustomerId, totalPrice };
+        var parameters = new { customerId, totalPrice };
         const string sql = @"
             INSERT INTO orders(customer_id, total_price)
             VALUES

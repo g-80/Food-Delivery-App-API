@@ -7,5 +7,5 @@ public class CreateQuoteRequest
 
     [Required]
     [MinLength(1, ErrorMessage = "Quote items cannot be empty")]
-    public List<ItemRequest> Items { get; set; } = new List<ItemRequest>();
+    public required List<RequestedItem> Items { get; set; }
 }
