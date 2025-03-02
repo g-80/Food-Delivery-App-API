@@ -49,12 +49,8 @@ public class OrdersRepository : BaseRepo
         ";
         using (var connection = new NpgsqlConnection(_connectionString))
         {
-            int nRows = await connection.ExecuteAsync(sql, parameters);
-            if (nRows == 0)
-            {
-                return false;
-            }
-            return true;
+            int rowsAffected = await connection.ExecuteAsync(sql, parameters);
+            return rowsAffected > 0;
         }
         ;
     }

@@ -128,7 +128,7 @@ public class ItemsControllerTests : IClassFixture<WebApplicationFactoryFixture>
         testItem.IsAvailable.Should().BeTrue();
         UpdateItemRequest itemReq = new UpdateItemRequest { Name = testItem.Name, Id = id, IsAvailable = false, Price = testItem.Price };
         // Act
-        var response = await _factory.Client.PutAsJsonAsync(HttpHelper.Urls.Items, itemReq);
+        var response = await _factory.Client.PutAsJsonAsync(HttpHelper.Urls.Items + id, itemReq);
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
         var repo = _factory.GetRepoFromServices<ItemsRepository>();
@@ -146,7 +146,7 @@ public class ItemsControllerTests : IClassFixture<WebApplicationFactoryFixture>
         testItem.Price.Should().Be(750);
         UpdateItemRequest itemReq = new UpdateItemRequest { Name = testItem.Name, Id = id, IsAvailable = testItem.IsAvailable, Price = -750 };
         // Act
-        var response = await _factory.Client.PutAsJsonAsync(HttpHelper.Urls.Items, itemReq);
+        var response = await _factory.Client.PutAsJsonAsync(HttpHelper.Urls.Items + id, itemReq);
         var errors = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);

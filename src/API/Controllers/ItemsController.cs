@@ -32,12 +32,16 @@ public class ItemsController : ControllerBase
         return Ok(result);
     }
 
-    [HttpPut]
-    public async Task<IActionResult> UpdateItem([FromBody] UpdateItemRequest itemRequest)
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> UpdateItem([FromRoute] int id, [FromBody] UpdateItemRequest itemRequest)
     {
+        if (itemRequest.Id != id)
+            return BadRequest("ID in URL must match ID in request body");
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
-        int _ = await _itemsRepo.UpdateItem(itemRequest);
+        bool success = await _itemsRepo.UpdateItem(itemRequest);
+        if (!success)
+            return NotFound("Item not found");
         return Ok();
     }
 }

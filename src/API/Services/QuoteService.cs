@@ -54,7 +54,7 @@ public class QuoteService
         return await _quotesRepo.GetQuoteById(id);
     }
 
-    public async Task<int> SetQuoteAsUsedAsync(int id)
+    public async Task<bool> SetQuoteAsUsedAsync(int id)
     {
         return await _quotesRepo.SetQuoteAsUsed(id);
     }

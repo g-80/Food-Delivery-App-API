@@ -38,7 +38,7 @@ public class ItemsRepository : BaseRepo
         ;
     }
 
-    public async Task<int> UpdateItem(UpdateItemRequest itemReq)
+    public async Task<bool> UpdateItem(UpdateItemRequest itemReq)
     {
         var parameters = new { itemReq.Id, itemReq.Name, itemReq.Description, itemReq.IsAvailable, itemReq.Price };
 
@@ -49,12 +49,9 @@ public class ItemsRepository : BaseRepo
         ";
         using (var connection = new NpgsqlConnection(_connectionString))
         {
-            return await connection.ExecuteAsync(sql, parameters);
+            int rowsAffected = await connection.ExecuteAsync(sql, parameters);
+            return rowsAffected > 0;
         }
         ;
     }
 }
-
-// TODO:
-// add try catch to ensure null returns getting handled
-// update is returning id/n of rows changed. fix it to return the updated row

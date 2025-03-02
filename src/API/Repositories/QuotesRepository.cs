@@ -53,7 +53,7 @@ public class QuotesRepository : BaseRepo
         ;
     }
 
-    public async Task<int> SetQuoteAsUsed(int id)
+    public async Task<bool> SetQuoteAsUsed(int id)
     {
         var parameters = new { Id = id };
 
@@ -64,7 +64,8 @@ public class QuotesRepository : BaseRepo
         ";
         using (var connection = new NpgsqlConnection(_connectionString))
         {
-            return await connection.ExecuteAsync(sql, parameters);
+            int rowsAffected = await connection.ExecuteAsync(sql, parameters);
+            return rowsAffected > 0;
         }
         ;
     }

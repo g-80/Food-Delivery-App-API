@@ -39,7 +39,7 @@ public class OrdersController : ControllerBase
 
         bool success = await _orderService.CancelOrderAsync(id);
         if (!success)
-            return NotFound("Order not found or already canceled");
+            return NotFound("Order not found");
 
         return Ok();
     }

@@ -27,7 +27,9 @@ public class QuotesController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        int _ = await _quoteService.SetQuoteAsUsedAsync(id);
+        bool success = await _quoteService.SetQuoteAsUsedAsync(id);
+        if (!success)
+            return NotFound("Quote not found");
         return Ok();
     }
 
