@@ -21,7 +21,7 @@ public class QuotesController : ControllerBase
         return Ok(response);
     }
 
-    [HttpPatch("use/{id:int}")]
+    [HttpPatch("use/{id:int:min(1)}")]
     public async Task<IActionResult> UseQuote([FromRoute] int id)
     {
         if (!ModelState.IsValid)
@@ -33,14 +33,9 @@ public class QuotesController : ControllerBase
         return Ok();
     }
 
-    [HttpGet("{id:int}")]
+    [HttpGet("{id:int:min(1)}")]
     public async Task<IActionResult> GetQuote([FromRoute] int id)
     {
-        if (id <= 0)
-        {
-            ModelState.AddModelError("id", "Invalid id");
-            return BadRequest(ModelState);
-        }
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
         Quote? result = await _quoteService.GetQuoteByIdAsync(id);

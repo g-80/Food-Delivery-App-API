@@ -149,10 +149,10 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactoryFixture>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var returnedOrder = await response.Content.ReadFromJsonAsync<Order>();
+        var returnedOrder = await response.Content.ReadFromJsonAsync<OrderResponse>();
         returnedOrder.Should().NotBeNull();
-        returnedOrder!.Id.Should().Be(order.Id);
-        returnedOrder.CustomerId.Should().Be(order.CustomerId);
+        returnedOrder!.OrderId.Should().Be(order.Id);
+        returnedOrder.TotalPrice.Should().Be(order.TotalPrice);
     }
 
     private async Task<(int, List<RequestedItem>)> CreateTestQuoteAndQuoteItems()

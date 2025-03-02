@@ -19,7 +19,7 @@ public class ItemsController : ControllerBase
         return Ok(result);
     }
 
-    [HttpGet("{id:int}")]
+    [HttpGet("{id:int:min(1)}")]
     public async Task<IActionResult> GetItem([FromRoute] int id)
     {
         if (!ModelState.IsValid)
@@ -32,7 +32,7 @@ public class ItemsController : ControllerBase
         return Ok(result);
     }
 
-    [HttpPut("{id:int}")]
+    [HttpPut("{id:int:min(1)}")]
     public async Task<IActionResult> UpdateItem([FromRoute] int id, [FromBody] UpdateItemRequest itemRequest)
     {
         if (itemRequest.Id != id)

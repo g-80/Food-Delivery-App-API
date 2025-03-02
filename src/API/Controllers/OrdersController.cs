@@ -31,7 +31,7 @@ public class OrdersController : ControllerBase
         return Ok(new OrderResponse { OrderId = orderId });
     }
 
-    [HttpPatch("cancel/{id:int}")]
+    [HttpPatch("cancel/{id:int:min(1)}")]
     public async Task<IActionResult> CancelOrder([FromRoute] int id)
     {
         if (!ModelState.IsValid)
@@ -44,23 +44,14 @@ public class OrdersController : ControllerBase
         return Ok();
     }
 
-    [HttpGet("{id:int}")]
+    [HttpGet("{id:int:min(1)}")]
     public async Task<IActionResult> GetOrder([FromRoute] int id)
     {
-        if (id <= 0)
-        {
-            ModelState.AddModelError("id", "Invalid id");
-            return BadRequest(ModelState);
-        }
         var order = await _orderService.GetOrderByIdAsync(id);
         if (order == null)
             return NotFound();
 
-        return Ok(order);
+        return Ok(new OrderResponse { OrderId = order.Id, TotalPrice = order.TotalPrice });
     }
 }
-
-// TODO:
-// return a DTO for GetOrder
-// is using a model for id validation useful instead of just int
 
