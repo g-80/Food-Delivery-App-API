@@ -31,13 +31,16 @@ public class QuoteService
         };
 
         string token = _quoteTokenService.GenerateQuoteToken(payload);
-        int quoteId = await _quotesRepo.CreateQuote(req.CustomerId, totalPrice, expiry);
+        int quoteId = await _quotesRepo.CreateQuote(new CreateQuoteDTO() { CustomerId = req.CustomerId, TotalPrice = totalPrice, Expiry = expiry });
 
         await Task.WhenAll(req.Items.Select((item, i) =>
             _quotesItemsRepo.CreateQuoteItem(
-                item,
-                quoteId,
-                itemsPrices[i]
+                new CreateQuoteItemDTO
+                {
+                    RequestedItem = item,
+                    QuoteId = quoteId,
+                    TotalPrice = itemsPrices[i]
+                }
             )
         ));
 

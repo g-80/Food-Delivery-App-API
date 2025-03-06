@@ -22,13 +22,13 @@ public class QuotesItemsRepository : BaseRepo
         ;
     }
 
-    public async Task<int> CreateQuoteItem(RequestedItem itemReq, int quoteId, int totalPrice)
+    public async Task<int> CreateQuoteItem(CreateQuoteItemDTO dto)
     {
-        var parameters = new { quoteId, itemReq.ItemId, itemReq.Quantity, totalPrice };
+        var parameters = new { dto.QuoteId, dto.RequestedItem.ItemId, dto.RequestedItem.Quantity, dto.TotalPrice };
         const string sql = @"
             INSERT INTO quote_items(quote_id, item_id, quantity, total_price)
             VALUES
-            (@quoteId, @ItemId, @Quantity, @totalPrice)
+            (@QuoteId, @ItemId, @Quantity, @TotalPrice)
             RETURNING id
         ";
         using (var connection = new NpgsqlConnection(_connectionString))

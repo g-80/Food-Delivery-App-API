@@ -1,13 +1,13 @@
 public class OrderService
 {
     private readonly OrdersRepository _ordersRepo;
-    private readonly OrderItemsRepository _ordersItemsRepo;
+    private readonly OrdersItemsRepository _ordersItemsRepo;
     private readonly QuotesRepository _quotesRepository;
     private readonly QuotesItemsRepository _quotesItemsRepository;
 
     public OrderService(
         OrdersRepository ordersRepo,
-        OrderItemsRepository ordersItemsRepo,
+        OrdersItemsRepository ordersItemsRepo,
         QuotesRepository quotesRepository,
         QuotesItemsRepository quotesItemsRepository)
     {
@@ -28,15 +28,18 @@ public class OrderService
         if (!quoteItems.Any())
             return 0;
 
-        var orderId = await _ordersRepo.CreateOrder(payload.CustomerId, payload.TotalPrice);
+        var orderId = await _ordersRepo.CreateOrder(new CreateOrderDTO { CustomerId = payload.CustomerId, TotalPrice = payload.TotalPrice });
         if (orderId == 0)
             return 0;
 
         await Task.WhenAll(quoteItems.Select(qItem =>
             _ordersItemsRepo.CreateOrderItem(
-                new RequestedItem { ItemId = qItem.ItemId, Quantity = qItem.Quantity },
-                orderId,
-                qItem.TotalPrice
+                new CreateOrderItemDTO
+                {
+                    RequestedItem = new RequestedItem { ItemId = qItem.ItemId, Quantity = qItem.Quantity },
+                    OrderId = orderId,
+                    TotalPrice = qItem.TotalPrice
+                }
             )
         ));
 

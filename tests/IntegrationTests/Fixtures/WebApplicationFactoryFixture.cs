@@ -10,8 +10,9 @@ public class WebApplicationFactoryFixture : IAsyncLifetime
 {
     private WebApplicationFactory<Program> _factory;
     public HttpClient Client { get; private set; }
-    private string _connectionString;
+    private string _connectionString = string.Empty;
     private DatabaseInitializer _dbInitializer;
+    public TestDataSeeder _seeder;
 
     public WebApplicationFactoryFixture()
     {
@@ -34,27 +35,21 @@ public class WebApplicationFactoryFixture : IAsyncLifetime
                 services.AddTransient(_ => new QuotesItemsRepository(_connectionString));
                 services.RemoveAll(typeof(OrdersRepository));
                 services.AddTransient(_ => new OrdersRepository(_connectionString));
-                services.RemoveAll(typeof(OrderItemsRepository));
-                services.AddTransient(_ => new OrderItemsRepository(_connectionString));
+                services.RemoveAll(typeof(OrdersItemsRepository));
+                services.AddTransient(_ => new OrdersItemsRepository(_connectionString));
+                services.AddSingleton<TestDataSeeder>();
             });
         });
         Client = _factory.CreateClient();
         _dbInitializer = new DatabaseInitializer(_connectionString, false);
+        _seeder = GetServiceFromContainer<TestDataSeeder>();
     }
 
     public async Task InitializeAsync()
     {
         await _dbInitializer.InitializeAsync();
-        var foodPlaceRepo = GetRepoFromServices<FoodPlacesRepository>();
-        foreach (var foodPlace in Fixtures.foodPlacesFixtures)
-        {
-            await foodPlaceRepo.CreateFoodPlace(foodPlace);
-        }
-        var itemRepo = GetRepoFromServices<ItemsRepository>();
-        foreach (var item in Fixtures.itemsFixtures)
-        {
-            Fixtures.itemsFixturesIds.Add(await itemRepo.CreateItem(item));
-        }
+        await _seeder.SeedFoodPlaces();
+        await _seeder.SeedItems();
     }
 
     public async Task DisposeAsync()
@@ -64,15 +59,15 @@ public class WebApplicationFactoryFixture : IAsyncLifetime
         builder.Database = "postgres";
         using (var connection = new NpgsqlConnection(builder.ConnectionString))
         {
-            connection.Execute($"DROP DATABASE IF EXISTS {DbName} WITH (FORCE)");
+            await connection.ExecuteAsync($"DROP DATABASE IF EXISTS {DbName} WITH (FORCE)");
         }
         ;
     }
 
-    public T GetRepoFromServices<T>() where T : notnull
+    public T GetServiceFromContainer<T>() where T : notnull
     {
         using var scope = _factory.Services.CreateScope();
-        var repository = scope.ServiceProvider.GetRequiredService<T>();
-        return repository;
+        var service = scope.ServiceProvider.GetRequiredService<T>();
+        return service;
     }
 }

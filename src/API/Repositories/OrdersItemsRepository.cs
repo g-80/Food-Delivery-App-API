@@ -1,9 +1,9 @@
 using Dapper;
 using Npgsql;
 
-public class OrderItemsRepository : BaseRepo
+public class OrdersItemsRepository : BaseRepo
 {
-    public OrderItemsRepository(string connectionString) : base(connectionString)
+    public OrdersItemsRepository(string connectionString) : base(connectionString)
     {
     }
 
@@ -27,13 +27,13 @@ public class OrderItemsRepository : BaseRepo
         ;
     }
 
-    public async Task<int> CreateOrderItem(RequestedItem orderItemReq, int orderId, int totalPrice)
+    public async Task<int> CreateOrderItem(CreateOrderItemDTO dto)
     {
-        var parameters = new { orderId, orderItemReq.ItemId, orderItemReq.Quantity, totalPrice };
+        var parameters = new { dto.OrderId, dto.RequestedItem.ItemId, dto.RequestedItem.Quantity, dto.TotalPrice };
         const string sql = @"
             INSERT INTO order_items(order_id, item_id, quantity, total_price)
             VALUES
-            (@orderId, @ItemId, @Quantity, @totalPrice)
+            (@OrderId, @ItemId, @Quantity, @TotalPrice)
             RETURNING id
         ";
         using (var connection = new NpgsqlConnection(_connectionString))

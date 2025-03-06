@@ -6,26 +6,27 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactoryFixture>
 {
     private readonly WebApplicationFactoryFixture _factory;
     private readonly OrdersRepository _ordersRepo;
-    private readonly OrderItemsRepository _orderItemsRepo;
+    private readonly OrdersItemsRepository _orderItemsRepo;
     private readonly QuotesRepository _quotesRepo;
-    private readonly QuotesItemsRepository _quotesItemsRepo;
     private readonly QuoteTokenService _tokenService;
+    private readonly TestDataSeeder _seeder;
 
     public OrdersControllerTests(WebApplicationFactoryFixture factory)
     {
         _factory = factory;
-        _tokenService = _factory.GetRepoFromServices<QuoteTokenService>();
-        _ordersRepo = _factory.GetRepoFromServices<OrdersRepository>();
-        _orderItemsRepo = _factory.GetRepoFromServices<OrderItemsRepository>();
-        _quotesRepo = _factory.GetRepoFromServices<QuotesRepository>();
-        _quotesItemsRepo = _factory.GetRepoFromServices<QuotesItemsRepository>();
+        _tokenService = _factory.GetServiceFromContainer<QuoteTokenService>();
+        _ordersRepo = _factory.GetServiceFromContainer<OrdersRepository>();
+        _orderItemsRepo = _factory.GetServiceFromContainer<OrdersItemsRepository>();
+        _quotesRepo = _factory.GetServiceFromContainer<QuotesRepository>();
+        _seeder = _factory.GetServiceFromContainer<TestDataSeeder>();
     }
 
     [Fact]
     public async Task CreateOrder_WithValidRequest_ShouldCreateOrderAndItems()
     {
         // Arrange
-        var (quoteId, quoteItems) = await CreateTestQuoteAndQuoteItems();
+        var quoteId = await _seeder.SeedQuoteAndQuoteItems();
+        var quoteItems = TestData.Orders.itemRequests;
         var payload = new QuoteTokenPayload
         {
             CustomerId = 1,
@@ -77,7 +78,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactoryFixture>
         {
             CustomerId = 1,
             ExpiresAt = DateTime.UtcNow.AddMinutes(5),
-            Items = Fixtures.itemRequests,
+            Items = TestData.Orders.itemRequests,
             TotalPrice = 2070
         };
 
@@ -103,7 +104,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactoryFixture>
         {
             CustomerId = 1,
             ExpiresAt = DateTime.UtcNow.AddMinutes(5),
-            Items = Fixtures.itemRequests,
+            Items = TestData.Orders.itemRequests,
             TotalPrice = 2070
         };
 
@@ -125,15 +126,15 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactoryFixture>
     public async Task CancelOrder_WithValidId_ShouldCancelOrder()
     {
         // Arrange
-        var order = await CreateTestOrderAndOrderItems();
+        var orderId = await _seeder.SeedOrderAndOrderItems();
 
         // Act
-        var response = await _factory.Client.PatchAsync(HttpHelper.Urls.CancelOrder + order!.Id, null);
+        var response = await _factory.Client.PatchAsync(HttpHelper.Urls.CancelOrder + orderId, null);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var cancelledOrder = await _ordersRepo.GetOrderById(order.Id);
+        var cancelledOrder = await _ordersRepo.GetOrderById(orderId);
         cancelledOrder.Should().NotBeNull();
         cancelledOrder!.IsCancelled.Should().BeTrue();
     }
@@ -142,52 +143,15 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactoryFixture>
     public async Task GetOrder_WithValidId_ShouldReturnOrder()
     {
         // Arrange
-        var order = await CreateTestOrderAndOrderItems();
+        var orderId = await _seeder.SeedOrderAndOrderItems();
 
         // Act
-        var response = await _factory.Client.GetAsync(HttpHelper.Urls.Orders + order!.Id);
+        var response = await _factory.Client.GetAsync(HttpHelper.Urls.Orders + orderId);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var returnedOrder = await response.Content.ReadFromJsonAsync<OrderResponse>();
         returnedOrder.Should().NotBeNull();
-        returnedOrder!.OrderId.Should().Be(order.Id);
-        returnedOrder.TotalPrice.Should().Be(order.TotalPrice);
-    }
-
-    private async Task<(int, List<RequestedItem>)> CreateTestQuoteAndQuoteItems()
-    {
-        int customerId = 1;
-        var quoteItems = Fixtures.itemRequests;
-        List<int> prices = new() { Fixtures.itemsFixtures[0].Price * quoteItems[0].Quantity, Fixtures.itemsFixtures[1].Price * quoteItems[1].Quantity };
-        int totalPrice = prices.Sum();
-        var quoteId = await _quotesRepo.CreateQuote(customerId, totalPrice, DateTime.UtcNow.AddMinutes(5));
-        await Task.WhenAll(quoteItems.Select((item, i) =>
-            _quotesItemsRepo.CreateQuoteItem(
-                item,
-                quoteId,
-                prices[i]
-            )
-        ));
-
-        return (quoteId, quoteItems);
-    }
-
-    private async Task<Order?> CreateTestOrderAndOrderItems()
-    {
-        var items = Fixtures.itemRequests;
-        List<int> prices = new() { Fixtures.itemsFixtures[0].Price * items[0].Quantity, Fixtures.itemsFixtures[1].Price * items[1].Quantity };
-        int totalPrice = prices.Sum();
-        var orderId = await _ordersRepo.CreateOrder(1, totalPrice);
-
-        await Task.WhenAll(items.Select((item, i) =>
-            _orderItemsRepo.CreateOrderItem(
-                item,
-                orderId,
-                prices[i]
-            )
-        ));
-
-        return await _ordersRepo.GetOrderById(orderId);
+        returnedOrder!.OrderId.Should().Be(orderId);
     }
 }

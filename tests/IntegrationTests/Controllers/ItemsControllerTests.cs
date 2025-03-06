@@ -33,7 +33,7 @@ public class ItemsControllerTests : IClassFixture<WebApplicationFactoryFixture>
         createdId.Should().BeGreaterThan(0);
 
         // Verify the created item
-        var repo = _factory.GetRepoFromServices<ItemsRepository>();
+        var repo = _factory.GetServiceFromContainer<ItemsRepository>();
         var createdItem = await repo.GetItemById(createdId);
         createdItem.Should().NotBeNull();
         createdItem!.Name.Should().Be(itemReq.Name);
@@ -94,8 +94,7 @@ public class ItemsControllerTests : IClassFixture<WebApplicationFactoryFixture>
     public async Task OnGetItem_ShouldReturnExpectedItem()
     {
         // Arrange
-        var testItem = Fixtures.itemsFixtures[0];
-        int id = Fixtures.itemsFixturesIds[0];
+        int id = TestData.Items.assignedIds[0];
         // Act
         var response = await _factory.Client.GetAsync(HttpHelper.Urls.Items + id);
         var result = await response.Content.ReadFromJsonAsync<Item>();
@@ -103,6 +102,7 @@ public class ItemsControllerTests : IClassFixture<WebApplicationFactoryFixture>
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
         result.Should().NotBeNull();
+        var testItem = TestData.Items.defaults[0];
         result!.Name.Should().Be(testItem.Name);
         result.Price.Should().Be(testItem.Price);
         result.IsAvailable.Should().Be(testItem.IsAvailable);
@@ -123,15 +123,15 @@ public class ItemsControllerTests : IClassFixture<WebApplicationFactoryFixture>
     public async Task OnUpdateItem_ShouldUpdateItemAndReturnUpdated()
     {
         // Arrange
-        var testItem = Fixtures.itemsFixtures[0];
-        int id = Fixtures.itemsFixturesIds[0];
+        var testItem = TestData.Items.defaults[0];
+        int id = TestData.Items.assignedIds[0];
         testItem.IsAvailable.Should().BeTrue();
         UpdateItemRequest itemReq = new UpdateItemRequest { Name = testItem.Name, Id = id, IsAvailable = false, Price = testItem.Price };
         // Act
         var response = await _factory.Client.PutAsJsonAsync(HttpHelper.Urls.Items + id, itemReq);
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
-        var repo = _factory.GetRepoFromServices<ItemsRepository>();
+        var repo = _factory.GetServiceFromContainer<ItemsRepository>();
         Item? after = await repo.GetItemById(id);
         after!.IsAvailable.Should().BeFalse();
     }
@@ -140,8 +140,8 @@ public class ItemsControllerTests : IClassFixture<WebApplicationFactoryFixture>
     public async Task OnUpdateInvalidItem_ShouldReturnBadRequest()
     {
         // Arrange
-        var testItem = Fixtures.itemsFixtures[0];
-        int id = Fixtures.itemsFixturesIds[0];
+        var testItem = TestData.Items.defaults[0];
+        int id = TestData.Items.assignedIds[0];
         testItem.IsAvailable.Should().BeTrue();
         testItem.Price.Should().Be(750);
         UpdateItemRequest itemReq = new UpdateItemRequest { Name = testItem.Name, Id = id, IsAvailable = testItem.IsAvailable, Price = -750 };

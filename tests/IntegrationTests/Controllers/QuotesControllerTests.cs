@@ -16,7 +16,7 @@ public class QuotesControllerTests : IClassFixture<WebApplicationFactoryFixture>
         var request = new CreateQuoteRequest
         {
             CustomerId = 1,
-            Items = Fixtures.itemRequests
+            Items = TestData.Orders.itemRequests
         };
 
         // Act
@@ -30,14 +30,14 @@ public class QuotesControllerTests : IClassFixture<WebApplicationFactoryFixture>
         result.QuoteToken.Should().NotBeNullOrWhiteSpace();
 
         // Verify the created quote in the database
-        var repo = _factory.GetRepoFromServices<QuotesRepository>();
+        var repo = _factory.GetServiceFromContainer<QuotesRepository>();
         var createdQuote = await repo.GetQuoteById(result.QuoteId);
         createdQuote.Should().NotBeNull();
         createdQuote!.CustomerId.Should().Be(request.CustomerId);
         createdQuote.Price.Should().Be(result.QuoteTokenPayload.TotalPrice);
 
         // Verify the created quote items in the database
-        var quotesItemsRepo = _factory.GetRepoFromServices<QuotesItemsRepository>();
+        var quotesItemsRepo = _factory.GetServiceFromContainer<QuotesItemsRepository>();
         var createdQuoteItems = await quotesItemsRepo.GetQuoteItemsByQuoteId(result.QuoteId);
         createdQuoteItems.Should().NotBeNull();
         createdQuoteItems.Should().HaveCount(request.Items.Count);
@@ -59,13 +59,13 @@ public class QuotesControllerTests : IClassFixture<WebApplicationFactoryFixture>
             CustomerId = 1,
             Items = new List<RequestedItem>
             {
-                new() { ItemId = Fixtures.itemsFixturesIds[0], Quantity = 1 }
+                new() { ItemId = TestData.Items.assignedIds[0], Quantity = 1 }
             }
         };
-        var repo = _factory.GetRepoFromServices<QuotesRepository>();
+        var repo = _factory.GetServiceFromContainer<QuotesRepository>();
         var expiry = DateTime.UtcNow.AddMinutes(5);
-        var price = Fixtures.itemsFixtures[0].Price;
-        int quoteId = await repo.CreateQuote(request.CustomerId, price, expiry);
+        var price = TestData.Items.defaults[0].Price;
+        int quoteId = await repo.CreateQuote(new CreateQuoteDTO { CustomerId = request.CustomerId, Expiry = expiry, TotalPrice = price });
 
         // Act
         var response = await _factory.Client.GetAsync(HttpHelper.Urls.Quotes + quoteId);
@@ -96,13 +96,13 @@ public class QuotesControllerTests : IClassFixture<WebApplicationFactoryFixture>
             CustomerId = 1,
             Items = new List<RequestedItem>
             {
-                new() { ItemId = Fixtures.itemsFixturesIds[0], Quantity = 1 }
+                new() { ItemId = TestData.Items.assignedIds[0], Quantity = 1 }
             }
         };
-        var repo = _factory.GetRepoFromServices<QuotesRepository>();
+        var repo = _factory.GetServiceFromContainer<QuotesRepository>();
         var expiry = DateTime.UtcNow.AddMinutes(5);
-        var price = Fixtures.itemsFixtures[0].Price;
-        int quoteId = await repo.CreateQuote(request.CustomerId, price, expiry);
+        var price = TestData.Items.defaults[0].Price;
+        int quoteId = await repo.CreateQuote(new CreateQuoteDTO { CustomerId = request.CustomerId, Expiry = expiry, TotalPrice = price });
 
         // Act
         var response = await _factory.Client.PatchAsync(HttpHelper.Urls.UseQuote + quoteId, null);

@@ -15,7 +15,7 @@ public class FoodPlacesControllerTests : IClassFixture<WebApplicationFactoryFixt
     public async Task OnGetFoodPlace_ShouldReturnExpectedFoodPlace()
     {
         // Arrange
-        var fixtures = Fixtures.foodPlacesFixtures;
+        var fixtures = TestData.FoodPlaces.foodPlacesFixtures;
         int seededDataId = 1;
         // Act
         var response = await _factory.Client.GetAsync(HttpHelper.Urls.GetFoodPlace + seededDataId);
@@ -32,7 +32,7 @@ public class FoodPlacesControllerTests : IClassFixture<WebApplicationFactoryFixt
     public async Task OnGetNonExistentFoodPlace_ShouldReturnNotFound()
     {
         // Arrange
-        int fixturesCount = Fixtures.foodPlacesFixtures.Count;
+        int fixturesCount = TestData.FoodPlaces.foodPlacesFixtures.Count;
         // Act
         var response = await _factory.Client.GetAsync(HttpHelper.Urls.GetFoodPlace + (fixturesCount + 1));
         // Assert
@@ -60,12 +60,12 @@ public class FoodPlacesControllerTests : IClassFixture<WebApplicationFactoryFixt
         string searchQuery = "greek";
         var query = new Dictionary<string, string>
         {
-            ["latitude"] = $"{Fixtures.locationLatLong.Item1}",
-            ["longitude"] = $"{Fixtures.locationLatLong.Item2}",
+            ["latitude"] = $"{TestData.FoodPlaces.locationLatLong.Item1}",
+            ["longitude"] = $"{TestData.FoodPlaces.locationLatLong.Item2}",
             ["searchquery"] = searchQuery
         };
         // Act
-        var response = await _factory.Client.GetAsync(QueryHelpers.AddQueryString(HttpHelper.Urls.SearchFoodPlaces, query));
+        var response = await _factory.Client.GetAsync(QueryHelpers.AddQueryString(HttpHelper.Urls.SearchFoodPlaces, query!));
         var result = await response.Content.ReadFromJsonAsync<List<FoodPlace>>();
 
         // Assert
@@ -82,12 +82,12 @@ public class FoodPlacesControllerTests : IClassFixture<WebApplicationFactoryFixt
         // Arrange
         var query = new Dictionary<string, string>
         {
-            ["latitude"] = $"{Fixtures.locationLatLong.Item1}",
-            ["longitude"] = $"{Fixtures.locationLatLong.Item2}",
+            ["latitude"] = $"{TestData.FoodPlaces.locationLatLong.Item1}",
+            ["longitude"] = $"{TestData.FoodPlaces.locationLatLong.Item2}",
             ["searchquery"] = searchQuery
         };
         // Act
-        var response = await _factory.Client.GetAsync(QueryHelpers.AddQueryString(HttpHelper.Urls.SearchFoodPlaces, query));
+        var response = await _factory.Client.GetAsync(QueryHelpers.AddQueryString(HttpHelper.Urls.SearchFoodPlaces, query!));
         var errors = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
 
         // Assert
@@ -102,16 +102,16 @@ public class FoodPlacesControllerTests : IClassFixture<WebApplicationFactoryFixt
         // Arrange
         var query = new Dictionary<string, string>
         {
-            ["latitude"] = $"{Fixtures.locationLatLong.Item1}",
-            ["longitude"] = $"{Fixtures.locationLatLong.Item2}",
+            ["latitude"] = $"{TestData.FoodPlaces.locationLatLong.Item1}",
+            ["longitude"] = $"{TestData.FoodPlaces.locationLatLong.Item2}",
         };
         // Act
-        var response = await _factory.Client.GetAsync(QueryHelpers.AddQueryString(HttpHelper.Urls.GetNearbyFoodPlaces, query));
+        var response = await _factory.Client.GetAsync(QueryHelpers.AddQueryString(HttpHelper.Urls.GetNearbyFoodPlaces, query!));
         var result = await response.Content.ReadFromJsonAsync<List<FoodPlace>>();
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
-        result!.Count.Should().Be(Fixtures.foodPlacesFixtures.Count);
+        result!.Count.Should().Be(TestData.FoodPlaces.foodPlacesFixtures.Count);
     }
 
     [Fact]
@@ -124,7 +124,7 @@ public class FoodPlacesControllerTests : IClassFixture<WebApplicationFactoryFixt
             ["longitude"] = "3.761067",
         };
         // Act
-        var response = await _factory.Client.GetAsync(QueryHelpers.AddQueryString(HttpHelper.Urls.GetNearbyFoodPlaces, query));
+        var response = await _factory.Client.GetAsync(QueryHelpers.AddQueryString(HttpHelper.Urls.GetNearbyFoodPlaces, query!));
         var errors = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
 
         // Assert

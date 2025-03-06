@@ -22,13 +22,13 @@ public class OrdersRepository : BaseRepo
         ;
     }
 
-    public async Task<int> CreateOrder(int customerId, int totalPrice)
+    public async Task<int> CreateOrder(CreateOrderDTO dto)
     {
-        var parameters = new { customerId, totalPrice };
+        var parameters = new { dto.CustomerId, dto.TotalPrice };
         const string sql = @"
             INSERT INTO orders(customer_id, total_price)
             VALUES
-            (@customerId, @totalPrice)
+            (@CustomerId, @TotalPrice)
             RETURNING id
         ";
         using (var connection = new NpgsqlConnection(_connectionString))
