@@ -19,6 +19,8 @@ builder.Services.AddSingleton(_ => new DatabaseInitializer(builder.Configuration
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

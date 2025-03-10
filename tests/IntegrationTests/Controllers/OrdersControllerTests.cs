@@ -92,11 +92,8 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactoryFixture>
 
         // Act
         var response = await _factory.Client.PostAsJsonAsync(HttpHelper.Urls.Orders, request);
-
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        dynamic json = JsonConvert.DeserializeObject(await response.Content.ReadAsStringAsync());
-        int a;
     }
 
     [Fact]
