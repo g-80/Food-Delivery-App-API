@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
+using Newtonsoft.Json;
 
 public class OrdersControllerTests : IClassFixture<WebApplicationFactoryFixture>
 {
@@ -94,6 +95,8 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactoryFixture>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        dynamic json = JsonConvert.DeserializeObject(await response.Content.ReadAsStringAsync());
+        int a;
     }
 
     [Fact]

@@ -4,33 +4,43 @@ public class OrderService
     private readonly OrdersItemsRepository _ordersItemsRepo;
     private readonly QuotesRepository _quotesRepository;
     private readonly QuotesItemsRepository _quotesItemsRepository;
+    private readonly QuoteTokenService _quoteTokenService;
 
     public OrderService(
         OrdersRepository ordersRepo,
         OrdersItemsRepository ordersItemsRepo,
         QuotesRepository quotesRepository,
-        QuotesItemsRepository quotesItemsRepository)
+        QuotesItemsRepository quotesItemsRepository,
+        QuoteTokenService quoteTokenService)
     {
         _ordersRepo = ordersRepo;
         _ordersItemsRepo = ordersItemsRepo;
         _quotesRepository = quotesRepository;
         _quotesItemsRepository = quotesItemsRepository;
+        _quoteTokenService = quoteTokenService;
     }
 
-    public async Task<int> CreateOrderAsync(int quoteId, QuoteTokenPayload payload)
+    public async Task<int> CreateOrderAsync(int quoteId, string quoteToken)
     {
+        if (!_quoteTokenService.ValidateQuoteToken(quoteToken, out var payload))
+            throw new InvalidQuoteTokenException();
         var quote = await _quotesRepository.GetQuoteById(quoteId);
         if (quote == null || quote.IsUsed)
-            return -1;
+            throw new QuoteNotFoundException();
+
         await _quotesRepository.SetQuoteAsUsed(quoteId);
-
         var quoteItems = await _quotesItemsRepository.GetQuoteItemsByQuoteId(quote.Id);
-        if (!quoteItems.Any())
-            return 0;
 
-        var orderId = await _ordersRepo.CreateOrder(new CreateOrderDTO { CustomerId = payload.CustomerId, TotalPrice = payload.TotalPrice });
-        if (orderId == 0)
-            return 0;
+        if (!quoteItems.Any())
+            throw new EmptyQuoteException();
+
+        int orderId;
+        orderId = await _ordersRepo.CreateOrder(new CreateOrderDTO
+        {
+            CustomerId = payload.CustomerId,
+            TotalPrice = payload.TotalPrice
+        });
+
 
         await Task.WhenAll(quoteItems.Select(qItem =>
             _ordersItemsRepo.CreateOrderItem(

@@ -16,6 +16,9 @@ builder.Services.AddSingleton(_ => new OrdersRepository(builder.Configuration.Ge
 builder.Services.AddSingleton(_ => new OrdersItemsRepository(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddSingleton<OrderService>();
 builder.Services.AddSingleton(_ => new DatabaseInitializer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -24,6 +27,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.MapControllers();
 Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;

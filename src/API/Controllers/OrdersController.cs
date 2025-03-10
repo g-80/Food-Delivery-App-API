@@ -5,12 +5,10 @@ using Microsoft.AspNetCore.Mvc;
 public class OrdersController : ControllerBase
 {
     private readonly OrderService _orderService;
-    private readonly QuoteTokenService _quoteTokenService;
 
-    public OrdersController(OrderService orderService, QuoteTokenService quoteTokenService)
+    public OrdersController(OrderService orderService)
     {
         _orderService = orderService;
-        _quoteTokenService = quoteTokenService;
     }
 
     [HttpPost]
@@ -19,14 +17,7 @@ public class OrdersController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        if (!_quoteTokenService.ValidateQuoteToken(req.QuoteToken, out var payload))
-            return BadRequest();
-
-        var orderId = await _orderService.CreateOrderAsync(req.QuoteId, payload);
-        if (orderId == -1)
-            return BadRequest();
-        if (orderId == 0)
-            return StatusCode(500, "Failed to create order");
+        var orderId = await _orderService.CreateOrderAsync(req.QuoteId, req.QuoteToken);
 
         return Ok(new OrderResponse { OrderId = orderId });
     }
