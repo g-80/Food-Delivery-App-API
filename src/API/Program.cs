@@ -15,6 +15,7 @@ builder.Services.AddSingleton<QuoteService>();
 builder.Services.AddSingleton(_ => new OrdersRepository(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddSingleton(_ => new OrdersItemsRepository(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddSingleton<OrderService>();
+builder.Services.AddTransient(_ => new UnitOfWork(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddSingleton(_ => new DatabaseInitializer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();

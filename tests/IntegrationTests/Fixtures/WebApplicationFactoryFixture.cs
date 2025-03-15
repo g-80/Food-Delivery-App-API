@@ -37,6 +37,8 @@ public class WebApplicationFactoryFixture : IAsyncLifetime
                 services.AddTransient(_ => new OrdersRepository(_connectionString));
                 services.RemoveAll(typeof(OrdersItemsRepository));
                 services.AddTransient(_ => new OrdersItemsRepository(_connectionString));
+                services.RemoveAll(typeof(UnitOfWork));
+                services.AddTransient(_ => new UnitOfWork(_connectionString));
                 services.AddSingleton<TestDataSeeder>();
             });
         });

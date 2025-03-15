@@ -5,19 +5,22 @@ public class OrderService
     private readonly QuotesRepository _quotesRepository;
     private readonly QuotesItemsRepository _quotesItemsRepository;
     private readonly QuoteTokenService _quoteTokenService;
+    private readonly UnitOfWork _unitOfWork;
 
     public OrderService(
         OrdersRepository ordersRepo,
         OrdersItemsRepository ordersItemsRepo,
         QuotesRepository quotesRepository,
         QuotesItemsRepository quotesItemsRepository,
-        QuoteTokenService quoteTokenService)
+        QuoteTokenService quoteTokenService,
+        UnitOfWork unitOfWork)
     {
         _ordersRepo = ordersRepo;
         _ordersItemsRepo = ordersItemsRepo;
         _quotesRepository = quotesRepository;
         _quotesItemsRepository = quotesItemsRepository;
         _quoteTokenService = quoteTokenService;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<int> CreateOrderAsync(int quoteId, string quoteToken)
@@ -28,32 +31,47 @@ public class OrderService
         if (quote == null || quote.IsUsed)
             throw new QuoteNotFoundException();
 
-        await _quotesRepository.SetQuoteAsUsed(quoteId);
-        var quoteItems = await _quotesItemsRepository.GetQuoteItemsByQuoteId(quote.Id);
-
-        if (!quoteItems.Any())
-            throw new EmptyQuoteException();
-
-        int orderId;
-        orderId = await _ordersRepo.CreateOrder(new CreateOrderDTO
+        using (_unitOfWork)
         {
-            CustomerId = payload.CustomerId,
-            TotalPrice = payload.TotalPrice
-        });
+            try
+            {
+                _unitOfWork.BeginTransaction();
+                await _quotesRepository.SetQuoteAsUsed(quoteId, _unitOfWork.Transaction);
+                var quoteItems = await _quotesItemsRepository.GetQuoteItemsByQuoteId(quote.Id);
 
+                if (!quoteItems.Any())
+                    throw new EmptyQuoteException();
 
-        await Task.WhenAll(quoteItems.Select(qItem =>
-            _ordersItemsRepo.CreateOrderItem(
-                new CreateOrderItemDTO
+                int orderId;
+                orderId = await _ordersRepo.CreateOrder(new CreateOrderDTO
                 {
-                    RequestedItem = new RequestedItem { ItemId = qItem.ItemId, Quantity = qItem.Quantity },
-                    OrderId = orderId,
-                    TotalPrice = qItem.TotalPrice
-                }
-            )
-        ));
+                    CustomerId = payload.CustomerId,
+                    TotalPrice = payload.TotalPrice
+                },
+                _unitOfWork.Transaction);
 
-        return orderId;
+
+                foreach (var qItem in quoteItems)
+                {
+                    await _ordersItemsRepo.CreateOrderItem(
+                        new CreateOrderItemDTO
+                        {
+                            RequestedItem = new RequestedItem { ItemId = qItem.ItemId, Quantity = qItem.Quantity },
+                            OrderId = orderId,
+                            TotalPrice = qItem.TotalPrice
+                        },
+                        _unitOfWork.Transaction
+                    );
+                }
+                _unitOfWork.Commit();
+                return orderId;
+            }
+            catch
+            {
+                _unitOfWork.Rollback();
+                throw;
+            }
+        }
     }
 
     public async Task<bool> CancelOrderAsync(int orderId)

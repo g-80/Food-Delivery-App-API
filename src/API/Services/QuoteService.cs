@@ -4,17 +4,20 @@ public class QuoteService
     private readonly QuotesItemsRepository _quotesItemsRepo;
     private readonly PricingService _pricingService;
     private readonly QuoteTokenService _quoteTokenService;
+    private readonly UnitOfWork _unitOfWork;
 
     public QuoteService(
         QuotesRepository quotesRepository,
         QuotesItemsRepository quotesItemsRepository,
         PricingService pricingService,
-        QuoteTokenService quoteTokenService)
+        QuoteTokenService quoteTokenService,
+        UnitOfWork unitOfWork)
     {
         _quotesRepo = quotesRepository;
         _quotesItemsRepo = quotesItemsRepository;
         _pricingService = pricingService;
         _quoteTokenService = quoteTokenService;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<QuoteResponse> CreateQuoteAsync(CreateQuoteRequest req)
@@ -31,25 +34,42 @@ public class QuoteService
         };
 
         string token = _quoteTokenService.GenerateQuoteToken(payload);
-        int quoteId = await _quotesRepo.CreateQuote(new CreateQuoteDTO() { CustomerId = req.CustomerId, TotalPrice = totalPrice, Expiry = expiry });
-
-        await Task.WhenAll(req.Items.Select((item, i) =>
-            _quotesItemsRepo.CreateQuoteItem(
-                new CreateQuoteItemDTO
-                {
-                    RequestedItem = item,
-                    QuoteId = quoteId,
-                    TotalPrice = itemsPrices[i]
-                }
-            )
-        ));
-
-        return new QuoteResponse
+        using (_unitOfWork)
         {
-            QuoteId = quoteId,
-            QuoteToken = token,
-            QuoteTokenPayload = payload
-        };
+            try
+            {
+                _unitOfWork.BeginTransaction();
+                int quoteId = await _quotesRepo.CreateQuote(new CreateQuoteDTO() { CustomerId = req.CustomerId, TotalPrice = totalPrice, Expiry = expiry }, _unitOfWork.Transaction);
+
+                for (int i = 0; i < req.Items.Count; i++)
+                {
+                    var item = req.Items[i];
+                    await _quotesItemsRepo.CreateQuoteItem(
+                        new CreateQuoteItemDTO
+                        {
+                            RequestedItem = item,
+                            QuoteId = quoteId,
+                            TotalPrice = itemsPrices[i]
+                        },
+                        _unitOfWork.Transaction
+                    );
+                }
+
+                _unitOfWork.Commit();
+                return new QuoteResponse
+                {
+                    QuoteId = quoteId,
+                    QuoteToken = token,
+                    QuoteTokenPayload = payload
+                };
+
+            }
+            catch
+            {
+                _unitOfWork.Rollback();
+                throw;
+            }
+        }
     }
 
     public async Task<Quote?> GetQuoteByIdAsync(int id)

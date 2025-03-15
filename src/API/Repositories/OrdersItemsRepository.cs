@@ -27,7 +27,7 @@ public class OrdersItemsRepository : BaseRepo
         ;
     }
 
-    public async Task<int> CreateOrderItem(CreateOrderItemDTO dto)
+    public async Task<int> CreateOrderItem(CreateOrderItemDTO dto, NpgsqlTransaction? transaction = null)
     {
         var parameters = new { dto.OrderId, dto.RequestedItem.ItemId, dto.RequestedItem.Quantity, dto.TotalPrice };
         const string sql = @"
@@ -36,6 +36,10 @@ public class OrdersItemsRepository : BaseRepo
             (@OrderId, @ItemId, @Quantity, @TotalPrice)
             RETURNING id
         ";
+        if (transaction != null)
+        {
+            return await transaction.Connection!.ExecuteScalarAsync<int>(sql, parameters, transaction);
+        }
         using (var connection = new NpgsqlConnection(_connectionString))
         {
             return await connection.ExecuteScalarAsync<int>(sql, parameters);

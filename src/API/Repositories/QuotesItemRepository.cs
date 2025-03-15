@@ -22,7 +22,7 @@ public class QuotesItemsRepository : BaseRepo
         ;
     }
 
-    public async Task<int> CreateQuoteItem(CreateQuoteItemDTO dto)
+    public async Task<int> CreateQuoteItem(CreateQuoteItemDTO dto, NpgsqlTransaction? transaction = null)
     {
         var parameters = new { dto.QuoteId, dto.RequestedItem.ItemId, dto.RequestedItem.Quantity, dto.TotalPrice };
         const string sql = @"
@@ -31,6 +31,10 @@ public class QuotesItemsRepository : BaseRepo
             (@QuoteId, @ItemId, @Quantity, @TotalPrice)
             RETURNING id
         ";
+        if (transaction != null)
+        {
+            return await transaction.Connection!.ExecuteScalarAsync<int>(sql, parameters, transaction);
+        }
         using (var connection = new NpgsqlConnection(_connectionString))
         {
             return await connection.ExecuteScalarAsync<int>(sql, parameters);

@@ -22,7 +22,7 @@ public class QuotesRepository : BaseRepo
         ;
     }
 
-    public async Task<int> CreateQuote(CreateQuoteDTO dto)
+    public async Task<int> CreateQuote(CreateQuoteDTO dto, NpgsqlTransaction? transaction = null)
     {
         var parameters = new { dto.CustomerId, dto.TotalPrice, dto.Expiry };
         const string sql = @"
@@ -31,6 +31,10 @@ public class QuotesRepository : BaseRepo
             (@CustomerId, @TotalPrice, @Expiry)
             RETURNING id
         ";
+        if (transaction != null)
+        {
+            return await transaction.Connection!.ExecuteScalarAsync<int>(sql, parameters, transaction);
+        }
         using (var connection = new NpgsqlConnection(_connectionString))
         {
             return await connection.ExecuteScalarAsync<int>(sql, parameters);
@@ -53,7 +57,7 @@ public class QuotesRepository : BaseRepo
         ;
     }
 
-    public async Task<bool> SetQuoteAsUsed(int id)
+    public async Task<bool> SetQuoteAsUsed(int id, NpgsqlTransaction? transaction = null)
     {
         var parameters = new { Id = id };
 
@@ -62,6 +66,11 @@ public class QuotesRepository : BaseRepo
             SET is_used = 'true'
             WHERE id = @Id
         ";
+        if (transaction != null)
+        {
+            int rowsAffected = await transaction.Connection!.ExecuteAsync(sql, parameters, transaction);
+            return rowsAffected > 0;
+        }
         using (var connection = new NpgsqlConnection(_connectionString))
         {
             int rowsAffected = await connection.ExecuteAsync(sql, parameters);
