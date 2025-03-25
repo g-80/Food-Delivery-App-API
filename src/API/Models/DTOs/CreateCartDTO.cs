@@ -1,6 +1,5 @@
-public class CreateQuoteDTO
+public class CreateCartDTO
 {
     public int CustomerId { get; set; }
-    public int TotalPrice { get; set; }
     public DateTime Expiry { get; set; }
 }

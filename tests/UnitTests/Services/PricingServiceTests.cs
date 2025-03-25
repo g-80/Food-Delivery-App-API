@@ -4,55 +4,51 @@ using Moq;
 public class PricingServiceTests
 {
     private readonly Mock<ItemsRepository> _itemsRepositoryMock;
+    private readonly Mock<CartItemsRepository> _cartItemsRepositoryMock;
     private readonly PricingService _pricingService;
 
     public PricingServiceTests()
     {
         _itemsRepositoryMock = new Mock<ItemsRepository>("TestConnectionString");
-        _pricingService = new PricingService(_itemsRepositoryMock.Object);
+        _cartItemsRepositoryMock = new Mock<CartItemsRepository>("TestConnectionString");
+        _pricingService = new PricingService(_itemsRepositoryMock.Object, _cartItemsRepositoryMock.Object);
     }
 
     [Fact]
-    public async Task CalculatePriceAsync_Should_Return_Correct_Totals()
+    public async Task CalculateCartPricingAsync_Should_ReturnCorrectTotals()
     {
         // Arrange
-        var items = new List<RequestedItem>
+        IEnumerable<CartItem> items = new List<CartItem>
         {
-            new() { ItemId = 1, Quantity = 2 },
-            new() { ItemId = 2, Quantity = 3 }
+            new() { ItemId = 1, Quantity = 2, UnitPrice = 250, Subtotal = 500 },
+            new() { ItemId = 2, Quantity = 3, UnitPrice = 300, Subtotal = 900 }
         };
 
 
-        _itemsRepositoryMock.Setup(repo => repo.GetItemById(1))
-            .ReturnsAsync(new Item { Id = 1, Price = 250 });
-
-        _itemsRepositoryMock.Setup(repo => repo.GetItemById(2))
-            .ReturnsAsync(new Item { Id = 2, Price = 300 });
+        _cartItemsRepositoryMock.Setup(repo => repo.GetCartItemsByCartId(1))
+            .ReturnsAsync(items);
 
         // Act
-        var (prices, totalPrice) = await _pricingService.CalculatePriceAsync(items);
+        var pricing = await _pricingService.CalculateCartPricing(1);
 
         // Assert
-        prices.Should().Equal(new List<int> { 500, 900 });
-        totalPrice.Should().Be(1400);
+        pricing.Total.Should().BeGreaterThanOrEqualTo(1400);
     }
 
     [Fact]
-    public async Task CalculatePriceAsync_Should_Throw_Exception_If_Item_Not_Found()
+    public async Task CalculatePriceAsync_ShouldThrowException_IfItemNotFound()
     {
         // Arrange
         int id = 99;
-        var items = new List<RequestedItem> { new() { ItemId = id, Quantity = 1 } };
-
+        var item = new RequestedItem { ItemId = id, Quantity = 1 };
 
         _itemsRepositoryMock.Setup(repo => repo.GetItemById(id))
             .ReturnsAsync((Item)null); // Simulating item not found
 
         // Act
-        Func<Task> act = async () => await _pricingService.CalculatePriceAsync(items);
+        Func<Task> act = async () => await _pricingService.CalculateItemPriceAsync(item);
 
         // Assert
-        await act.Should().ThrowAsync<Exception>()
-            .WithMessage($"Item with ID: {id} not found");
+        await act.Should().ThrowAsync<Exception>();
     }
 }

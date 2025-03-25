@@ -1,26 +1,33 @@
 public class PricingService
 {
     private readonly ItemsRepository _itemsRepository;
+    private readonly CartItemsRepository _cartItemsRepository;
 
-    public PricingService(ItemsRepository itemsRepository)
+    public PricingService(ItemsRepository itemsRepository, CartItemsRepository cartItemsRepository)
     {
         _itemsRepository = itemsRepository;
+        _cartItemsRepository = cartItemsRepository;
     }
 
-    public async Task<(List<int>, int)> CalculatePriceAsync(List<RequestedItem> items)
+    public async Task<(int, int)> CalculateItemPriceAsync(RequestedItem requestedItem)
     {
-        int totalPrice = 0;
-        List<int> prices = new();
+        Item item = await _itemsRepository.GetItemById(requestedItem.ItemId) ?? throw new Exception($"Item with ID: {requestedItem.ItemId} not found");
+        return (item.Price, item.Price * requestedItem.Quantity);
+    }
 
-        foreach (var itemReq in items)
+    public async Task<CartPricingDTO> CalculateCartPricing(int cartId)
+    {
+        IEnumerable<CartItem> cartItems = await _cartItemsRepository.GetCartItemsByCartId(cartId);
+        int subtotal = cartItems.Sum(item => item.Subtotal);
+        int fees = 0;
+        int deliveryFee = 0;
+        return new CartPricingDTO
         {
-            Item item = await _itemsRepository.GetItemById(itemReq.ItemId);
-            if (item == null) throw new Exception($"Item with ID: {itemReq.ItemId} not found");
-
-            int price = item.Price * itemReq.Quantity;
-            prices.Add(price);
-            totalPrice += price;
-        }
-        return (prices, totalPrice);
+            CartId = cartId,
+            Subtotal = subtotal,
+            Fees = fees,
+            DeliveryFee = deliveryFee,
+            Total = subtotal + fees + deliveryFee
+        };
     }
 }

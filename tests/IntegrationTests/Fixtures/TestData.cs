@@ -61,36 +61,61 @@ internal static class TestData
         public static readonly List<int> assignedIds = new();
     }
 
-    public static class Orders
+    public static class Carts
     {
+        public static int assignedCartId = -1;
         public static readonly List<RequestedItem> itemRequests = new()
         {
             new() { ItemId = 1, Quantity = 2 },
             new() { ItemId = 2, Quantity = 1 }
         };
 
-        public static List<int> prices = new List<int>
-        {
-            Items.defaults[0].Price * itemRequests[0].Quantity,
-            Items.defaults[1].Price * itemRequests[1].Quantity
-        };
+        public static List<int> prices = itemRequests.Zip(Items.defaults, (itemReq, itemData) => itemData.Price * itemReq.Quantity).ToList();
 
-        public static CreateQuoteDTO CreateQuoteDTO(int customerId = 1)
+        public static CreateCartDTO CreateCartDTO(int customerId = 1)
         {
-            return new CreateQuoteDTO
+            return new CreateCartDTO
             {
                 CustomerId = customerId,
-                TotalPrice = prices.Sum(),
                 Expiry = DateTime.UtcNow.AddMinutes(5)
             };
         }
 
+        public static IEnumerable<CreateCartItemDTO> CreateCartItemDTOs(int cartId = 1)
+        {
+            return itemRequests.Select((item, i) => new CreateCartItemDTO
+            {
+                RequestedItem = item,
+                CartId = cartId,
+                UnitPrice = Items.defaults[i].Price,
+                Subtotal = Items.defaults[i].Price * itemRequests[i].Quantity,
+            });
+        }
+
+        public static CartPricingDTO CreateCartPricingDTO(int cartId = 1)
+        {
+            int subtotal = prices.Sum();
+            int fees = 75;
+            int deliveryFee = 230;
+            return new CartPricingDTO
+            {
+                CartId = cartId,
+                Subtotal = subtotal,
+                Fees = fees,
+                DeliveryFee = deliveryFee,
+                Total = subtotal + fees + deliveryFee,
+            };
+        }
+    }
+
+    public static class Orders
+    {
         public static CreateOrderDTO CreateOrderDTO(int customerId = 1)
         {
             return new CreateOrderDTO
             {
                 CustomerId = customerId,
-                TotalPrice = prices.Sum()
+                TotalPrice = Carts.prices.Sum()
             };
         }
     }

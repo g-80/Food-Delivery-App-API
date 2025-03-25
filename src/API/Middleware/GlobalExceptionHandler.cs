@@ -22,8 +22,8 @@ public class GlobalExceptionHandler : IExceptionHandler
 
         var (statusCode, detailedMessage) = exception switch
         {
-            QuoteNotFoundException ex => (StatusCodes.Status400BadRequest, ex.Message),
-            InvalidQuoteTokenException ex => (StatusCodes.Status400BadRequest, ex.Message),
+            CartNotFoundException ex => (StatusCodes.Status400BadRequest, ex.Message),
+            EmptyCartException ex => (StatusCodes.Status400BadRequest, ex.Message),
             _ => (StatusCodes.Status500InternalServerError, "An unexpected error occurred.")
         };
 

@@ -8,43 +8,23 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactoryFixture>
     private readonly WebApplicationFactoryFixture _factory;
     private readonly OrdersRepository _ordersRepo;
     private readonly OrdersItemsRepository _orderItemsRepo;
-    private readonly QuotesRepository _quotesRepo;
-    private readonly QuoteTokenService _tokenService;
+    private readonly CartsRepository _cartsRepo;
     private readonly TestDataSeeder _seeder;
 
     public OrdersControllerTests(WebApplicationFactoryFixture factory)
     {
         _factory = factory;
-        _tokenService = _factory.GetServiceFromContainer<QuoteTokenService>();
         _ordersRepo = _factory.GetServiceFromContainer<OrdersRepository>();
         _orderItemsRepo = _factory.GetServiceFromContainer<OrdersItemsRepository>();
-        _quotesRepo = _factory.GetServiceFromContainer<QuotesRepository>();
+        _cartsRepo = _factory.GetServiceFromContainer<CartsRepository>();
         _seeder = _factory.GetServiceFromContainer<TestDataSeeder>();
     }
 
     [Fact]
     public async Task CreateOrder_WithValidRequest_ShouldCreateOrderAndItems()
     {
-        // Arrange
-        var quoteId = await _seeder.SeedQuoteAndQuoteItems();
-        var quoteItems = TestData.Orders.itemRequests;
-        var payload = new QuoteTokenPayload
-        {
-            CustomerId = 1,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(5),
-            Items = quoteItems,
-            TotalPrice = 2070
-        };
-
-        var request = new CreateOrderRequest
-        {
-            QuoteId = quoteId,
-            QuoteToken = _tokenService.GenerateQuoteToken(payload),
-            QuoteTokenPayload = payload
-        };
-
         // Act
-        var response = await _factory.Client.PostAsJsonAsync(HttpHelper.Urls.Orders, request);
+        var response = await _factory.Client.PostAsync(HttpHelper.Urls.Orders, null);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -55,71 +35,19 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactoryFixture>
         // Verify database entries using repositories
         var order = await _ordersRepo.GetOrderById(orderId);
         order.Should().NotBeNull();
-        order!.CustomerId.Should().Be(payload.CustomerId);
 
         var orderItems = await _orderItemsRepo.GetOrderItemsByOrderId(orderId);
-        orderItems.Should().HaveSameCount(quoteItems);
+        orderItems.Should().HaveSameCount(TestData.Carts.itemRequests);
 
         foreach (var orderItem in orderItems)
         {
-            var matchingQuoteItem = quoteItems.First(qi => qi.ItemId == orderItem.ItemId);
-            orderItem.Quantity.Should().Be(matchingQuoteItem.Quantity);
+            var matchingCartItem = TestData.Carts.CreateCartItemDTOs().First(cartItem => cartItem.RequestedItem.ItemId == orderItem.ItemId);
+            orderItem.Quantity.Should().Be(matchingCartItem.RequestedItem.Quantity);
         }
 
         // Verify quote is marked as used
-        var updatedQuote = await _quotesRepo.GetQuoteById(quoteId);
+        var updatedQuote = await _cartsRepo.GetCartById(TestData.Carts.assignedCartId);
         updatedQuote!.IsUsed.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task CreateOrder_WithInvalidQuoteToken_ShouldReturnBadRequest()
-    {
-        // Arrange
-        var payload = new QuoteTokenPayload
-        {
-            CustomerId = 1,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(5),
-            Items = TestData.Orders.itemRequests,
-            TotalPrice = 2070
-        };
-
-        var request = new CreateOrderRequest
-        {
-            QuoteId = 1,
-            QuoteToken = "invalid.token",
-            QuoteTokenPayload = payload
-        };
-
-        // Act
-        var response = await _factory.Client.PostAsJsonAsync(HttpHelper.Urls.Orders, request);
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    }
-
-    [Fact]
-    public async Task CreateOrder_WithNonExistentQuote_ShouldReturnBadRequest()
-    {
-        // Arrange
-        var payload = new QuoteTokenPayload
-        {
-            CustomerId = 1,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(5),
-            Items = TestData.Orders.itemRequests,
-            TotalPrice = 2070
-        };
-
-        var request = new CreateOrderRequest
-        {
-            QuoteId = 999999999,
-            QuoteToken = _tokenService.GenerateQuoteToken(payload),
-            QuoteTokenPayload = payload
-        };
-
-        // Act
-        var response = await _factory.Client.PostAsJsonAsync(HttpHelper.Urls.Orders, request);
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]

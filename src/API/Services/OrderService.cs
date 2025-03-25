@@ -2,63 +2,65 @@ public class OrderService
 {
     private readonly OrdersRepository _ordersRepo;
     private readonly OrdersItemsRepository _ordersItemsRepo;
-    private readonly QuotesRepository _quotesRepository;
-    private readonly QuotesItemsRepository _quotesItemsRepository;
-    private readonly QuoteTokenService _quoteTokenService;
+    private readonly CartService _cartService;
+    private readonly CartsRepository _cartsRepo;
+    private readonly CartItemsRepository _cartItemsRepo;
+    private readonly CartPricingsRepository _cartPricingsRepo;
+
     private readonly UnitOfWork _unitOfWork;
 
     public OrderService(
         OrdersRepository ordersRepo,
-        OrdersItemsRepository ordersItemsRepo,
-        QuotesRepository quotesRepository,
-        QuotesItemsRepository quotesItemsRepository,
-        QuoteTokenService quoteTokenService,
+        OrdersItemsRepository ordersItemsRepository,
+        CartsRepository cartsRepository,
+        CartItemsRepository cartItemsRepository,
+        CartPricingsRepository cartPricingsRepository,
+        CartService cartService,
         UnitOfWork unitOfWork)
     {
         _ordersRepo = ordersRepo;
-        _ordersItemsRepo = ordersItemsRepo;
-        _quotesRepository = quotesRepository;
-        _quotesItemsRepository = quotesItemsRepository;
-        _quoteTokenService = quoteTokenService;
+        _ordersItemsRepo = ordersItemsRepository;
+        _cartsRepo = cartsRepository;
+        _cartItemsRepo = cartItemsRepository;
+        _cartPricingsRepo = cartPricingsRepository;
+        _cartService = cartService;
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<int> CreateOrderAsync(int quoteId, string quoteToken)
+    public async Task<int> CreateOrderAsync(int customerId)
     {
-        if (!_quoteTokenService.ValidateQuoteToken(quoteToken, out var payload))
-            throw new InvalidQuoteTokenException();
-        var quote = await _quotesRepository.GetQuoteById(quoteId);
-        if (quote == null || quote.IsUsed)
-            throw new QuoteNotFoundException();
+        Cart? cart = await _cartService.GetCartByCustomerIdAsync(customerId);
+        if (cart == null)
+            throw new CartNotFoundException();
+        if (cart!.IsUsed)
+            throw new Exception("Cart has already been checked out");
+
+        var cartDetails = await _cartService.GetCartDetailsAsync(customerId);
+        if (!cartDetails.CartItems.Any())
+            throw new EmptyCartException();
 
         using (_unitOfWork)
         {
             try
             {
                 _unitOfWork.BeginTransaction();
-                await _quotesRepository.SetQuoteAsUsed(quoteId, _unitOfWork.Transaction);
-                var quoteItems = await _quotesItemsRepository.GetQuoteItemsByQuoteId(quote.Id);
+                await _cartsRepo.SetCartAsUsed(cart.Id, _unitOfWork.Transaction);
 
-                if (!quoteItems.Any())
-                    throw new EmptyQuoteException();
-
-                int orderId;
-                orderId = await _ordersRepo.CreateOrder(new CreateOrderDTO
+                int orderId = await _ordersRepo.CreateOrder(new CreateOrderDTO
                 {
-                    CustomerId = payload.CustomerId,
-                    TotalPrice = payload.TotalPrice
+                    CustomerId = customerId,
+                    TotalPrice = cartDetails.Total
                 },
                 _unitOfWork.Transaction);
 
-
-                foreach (var qItem in quoteItems)
+                foreach (var item in cartDetails.CartItems)
                 {
                     await _ordersItemsRepo.CreateOrderItem(
                         new CreateOrderItemDTO
                         {
-                            RequestedItem = new RequestedItem { ItemId = qItem.ItemId, Quantity = qItem.Quantity },
+                            RequestedItem = new RequestedItem { ItemId = item.ItemId, Quantity = item.Quantity },
                             OrderId = orderId,
-                            TotalPrice = qItem.TotalPrice
+                            Subtotal = item.Subtotal
                         },
                         _unitOfWork.Transaction
                     );

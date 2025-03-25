@@ -245,7 +245,7 @@ CREATE TABLE public.order_items (
     order_id integer NOT NULL,
     item_id integer NOT NULL,
     quantity integer NOT NULL,
-    total_price integer NOT NULL
+    subtotal integer NOT NULL
 );
 
 

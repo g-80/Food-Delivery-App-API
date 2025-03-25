@@ -29,10 +29,12 @@ public class WebApplicationFactoryFixture : IAsyncLifetime
                 services.AddTransient(_ => new FoodPlacesRepository(_connectionString));
                 services.RemoveAll(typeof(ItemsRepository));
                 services.AddTransient(_ => new ItemsRepository(_connectionString));
-                services.RemoveAll(typeof(QuotesRepository));
-                services.AddTransient(_ => new QuotesRepository(_connectionString));
-                services.RemoveAll(typeof(QuotesItemsRepository));
-                services.AddTransient(_ => new QuotesItemsRepository(_connectionString));
+                services.RemoveAll(typeof(CartsRepository));
+                services.AddTransient(_ => new CartsRepository(_connectionString));
+                services.RemoveAll(typeof(CartItemsRepository));
+                services.AddTransient(_ => new CartItemsRepository(_connectionString));
+                services.RemoveAll(typeof(CartPricingsRepository));
+                services.AddTransient(_ => new CartPricingsRepository(_connectionString));
                 services.RemoveAll(typeof(OrdersRepository));
                 services.AddTransient(_ => new OrdersRepository(_connectionString));
                 services.RemoveAll(typeof(OrdersItemsRepository));
@@ -52,6 +54,7 @@ public class WebApplicationFactoryFixture : IAsyncLifetime
         await _dbInitializer.InitializeAsync();
         await _seeder.SeedFoodPlaces();
         await _seeder.SeedItems();
+        await _seeder.SeedCartData();
     }
 
     public async Task DisposeAsync()

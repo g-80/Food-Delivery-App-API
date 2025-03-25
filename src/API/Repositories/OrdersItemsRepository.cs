@@ -16,7 +16,7 @@ public class OrdersItemsRepository : BaseRepo
                 order_id,
                 item_id,
                 quantity,
-                total_price
+                subtotal
             FROM order_items
             WHERE id = @Id
             ";
@@ -29,11 +29,11 @@ public class OrdersItemsRepository : BaseRepo
 
     public async Task<int> CreateOrderItem(CreateOrderItemDTO dto, NpgsqlTransaction? transaction = null)
     {
-        var parameters = new { dto.OrderId, dto.RequestedItem.ItemId, dto.RequestedItem.Quantity, dto.TotalPrice };
+        var parameters = new { dto.OrderId, dto.RequestedItem.ItemId, dto.RequestedItem.Quantity, dto.Subtotal };
         const string sql = @"
-            INSERT INTO order_items(order_id, item_id, quantity, total_price)
+            INSERT INTO order_items(order_id, item_id, quantity, subtotal)
             VALUES
-            (@OrderId, @ItemId, @Quantity, @TotalPrice)
+            (@OrderId, @ItemId, @Quantity, @Subtotal)
             RETURNING id
         ";
         if (transaction != null)
@@ -57,7 +57,7 @@ public class OrdersItemsRepository : BaseRepo
                 order_id,
                 item_id,
                 quantity,
-                total_price
+                subtotal
             FROM order_items
             WHERE order_id = @Id
         ";

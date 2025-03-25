@@ -1,34 +1,49 @@
 using Dapper;
 using Npgsql;
 
-public class QuotesRepository : BaseRepo
+public class CartsRepository : BaseRepo
 {
-    public QuotesRepository(string connectionString) : base(connectionString)
+    public CartsRepository(string connectionString) : base(connectionString)
     {
     }
 
-    public async Task<Quote?> GetQuoteById(int id)
+    public async Task<Cart?> GetCartById(int id)
     {
         var parameters = new { Id = id };
         const string sql = @"
             SELECT *
-            FROM quotes
+            FROM carts
             WHERE id = @Id
             ";
         using (var connection = new NpgsqlConnection(_connectionString))
         {
-            return await connection.QuerySingleOrDefaultAsync<Quote>(sql, parameters);
+            return await connection.QuerySingleOrDefaultAsync<Cart>(sql, parameters);
         }
         ;
     }
 
-    public async Task<int> CreateQuote(CreateQuoteDTO dto, NpgsqlTransaction? transaction = null)
+    public async Task<Cart?> GetCartByCustomerId(int customerId)
     {
-        var parameters = new { dto.CustomerId, dto.TotalPrice, dto.Expiry };
+        var parameters = new { Id = customerId };
         const string sql = @"
-            INSERT INTO quotes(customer_id, price, expires_at)
+            SELECT *
+            FROM carts
+            WHERE customer_id = @Id
+            ";
+        using (var connection = new NpgsqlConnection(_connectionString))
+        {
+            return await connection.QuerySingleOrDefaultAsync<Cart>(sql, parameters);
+        }
+        ;
+    }
+
+    public async Task<int> CreateCart(CreateCartDTO dto, NpgsqlTransaction? transaction = null)
+    {
+        var parameters = new { dto.CustomerId, dto.Expiry };
+        const string sql = @"
+            INSERT INTO carts(customer_id, expires_at)
             VALUES
-            (@CustomerId, @TotalPrice, @Expiry)
+            (@CustomerId, @Expiry)
             RETURNING id
         ";
         if (transaction != null)
@@ -42,12 +57,12 @@ public class QuotesRepository : BaseRepo
         ;
     }
 
-    public async Task<int> DeleteQuote(int id)
+    public async Task<int> DeleteCart(int id)
     {
         var parameters = new { Id = id };
 
         const string sql = @"
-            DELETE FROM quotes
+            DELETE FROM carts
             WHERE id = @Id
         ";
         using (var connection = new NpgsqlConnection(_connectionString))
@@ -57,12 +72,12 @@ public class QuotesRepository : BaseRepo
         ;
     }
 
-    public async Task<bool> SetQuoteAsUsed(int id, NpgsqlTransaction? transaction = null)
+    public async Task<bool> SetCartAsUsed(int id, NpgsqlTransaction? transaction = null)
     {
         var parameters = new { Id = id };
 
         const string sql = @"
-            UPDATE quotes
+            UPDATE carts
             SET is_used = 'true'
             WHERE id = @Id
         ";

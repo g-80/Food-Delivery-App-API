@@ -12,12 +12,10 @@ public class OrdersController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest req)
+    public async Task<IActionResult> CreateOrder()
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
-        var orderId = await _orderService.CreateOrderAsync(req.QuoteId, req.QuoteToken);
+        var tempCustomerId = 1;
+        var orderId = await _orderService.CreateOrderAsync(tempCustomerId);
 
         return Ok(new OrderResponse { OrderId = orderId });
     }
