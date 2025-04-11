@@ -119,4 +119,30 @@ internal static class TestData
             };
         }
     }
+
+    public static class Users
+    {
+        public static List<CreateUserRequest> createUserRequests = new()
+        {
+            new()
+            {
+                FirstName = "Kirov",
+                Surname = "Reporting",
+                Password = "very_secure_password_123",
+                PhoneNumber = "07123456789",
+                UserType = UserTypes.customer
+            },
+            new()
+            {
+                FirstName = "John",
+                Surname = "Doe",
+                Password = "very_secure_password_123",
+                PhoneNumber = "07123123123",
+                UserType = UserTypes.food_place
+            }
+        };
+
+        public static readonly List<UserLoginRequest> loginRequests = createUserRequests.Select(
+            req => new UserLoginRequest { PhoneNumber = req.PhoneNumber, Password = req.Password }).ToList();
+    }
 }

@@ -2,13 +2,15 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 
-public class ItemsControllerTests : IClassFixture<WebApplicationFactoryFixture>
+[Collection("Controllers collection")]
+public class ItemsControllerTests
 {
     private readonly WebApplicationFactoryFixture _factory;
 
     public ItemsControllerTests(WebApplicationFactoryFixture factory)
     {
         _factory = factory;
+        _factory.SetFoodPlaceAccessToken();
     }
 
     [Fact]
@@ -33,7 +35,7 @@ public class ItemsControllerTests : IClassFixture<WebApplicationFactoryFixture>
         createdId.Should().BeGreaterThan(0);
 
         // Verify the created item
-        var repo = _factory.GetServiceFromContainer<ItemsRepository>();
+        var repo = _factory.GetServiceFromContainer<IItemsRepository>();
         var createdItem = await repo.GetItemById(createdId);
         createdItem.Should().NotBeNull();
         createdItem!.Name.Should().Be(itemReq.Name);
@@ -131,7 +133,7 @@ public class ItemsControllerTests : IClassFixture<WebApplicationFactoryFixture>
         var response = await _factory.Client.PutAsJsonAsync(HttpHelper.Urls.Items + id, itemReq);
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
-        var repo = _factory.GetServiceFromContainer<ItemsRepository>();
+        var repo = _factory.GetServiceFromContainer<IItemsRepository>();
         Item? after = await repo.GetItemById(id);
         after!.IsAvailable.Should().BeFalse();
     }

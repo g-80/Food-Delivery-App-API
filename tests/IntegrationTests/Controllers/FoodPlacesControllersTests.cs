@@ -3,12 +3,14 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 
-public class FoodPlacesControllerTests : IClassFixture<WebApplicationFactoryFixture>
+[Collection("Controllers collection")]
+public class FoodPlacesControllerTests
 {
     private readonly WebApplicationFactoryFixture _factory;
     public FoodPlacesControllerTests(WebApplicationFactoryFixture factory)
     {
         _factory = factory;
+        _factory.SetCustomerAccessToken();
     }
 
     [Fact]

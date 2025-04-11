@@ -10,5 +10,8 @@ internal class HttpHelper
         internal readonly static string CartsItems = "/api/carts/items/";
         internal readonly static string Orders = "/api/orders/";
         internal readonly static string CancelOrder = "/api/orders/cancel/";
+        internal readonly static string SignUp = "/api/auth/signup/";
+        internal readonly static string Login = "/api/auth/login/";
+        internal readonly static string RefreshToken = "/api/auth/refresh-token/";
     }
 }

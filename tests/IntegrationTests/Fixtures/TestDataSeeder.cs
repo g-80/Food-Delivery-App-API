@@ -1,13 +1,14 @@
 public class TestDataSeeder
 {
     private readonly FoodPlacesRepository _foodPlacesRepo;
-    private readonly ItemsRepository _itemsRepo;
+    private readonly IItemsRepository _itemsRepo;
     private readonly CartsRepository _cartsRepo;
-    private readonly CartItemsRepository _cartItemsRepo;
+    private readonly ICartItemsRepository _cartItemsRepo;
     private readonly CartPricingsRepository _cartPricingsRepo;
     private readonly OrdersRepository _ordersRepo;
     private readonly OrdersItemsRepository _orderItemsRepo;
-    public TestDataSeeder(FoodPlacesRepository foodPlacesRepo, ItemsRepository itemsRepo, CartsRepository cartsRepo, CartItemsRepository cartItemsRepo, CartPricingsRepository cartPricingsRepo, OrdersRepository ordersRepo, OrdersItemsRepository orderItemsRepo)
+    private readonly AuthService _authService;
+    public TestDataSeeder(FoodPlacesRepository foodPlacesRepo, IItemsRepository itemsRepo, CartsRepository cartsRepo, ICartItemsRepository cartItemsRepo, CartPricingsRepository cartPricingsRepo, OrdersRepository ordersRepo, OrdersItemsRepository orderItemsRepo, AuthService authService)
     {
         _foodPlacesRepo = foodPlacesRepo;
         _itemsRepo = itemsRepo;
@@ -16,6 +17,7 @@ public class TestDataSeeder
         _cartPricingsRepo = cartPricingsRepo;
         _ordersRepo = ordersRepo;
         _orderItemsRepo = orderItemsRepo;
+        _authService = authService;
     }
     public async Task SeedFoodPlaces()
     {
@@ -50,5 +52,13 @@ public class TestDataSeeder
             )
         ));
         return orderId;
+    }
+
+    public async Task SeedUsers()
+    {
+        await Task.WhenAll(TestData.Users.createUserRequests.Select(async req =>
+        {
+            int id = (await _authService.RegisterUserAsync(req))!.Id!.Value;
+        }));
     }
 }

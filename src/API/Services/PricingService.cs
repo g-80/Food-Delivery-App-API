@@ -1,9 +1,9 @@
 public class PricingService
 {
-    private readonly ItemsRepository _itemsRepository;
-    private readonly CartItemsRepository _cartItemsRepository;
+    private readonly IItemsRepository _itemsRepository;
+    private readonly ICartItemsRepository _cartItemsRepository;
 
-    public PricingService(ItemsRepository itemsRepository, CartItemsRepository cartItemsRepository)
+    public PricingService(IItemsRepository itemsRepository, ICartItemsRepository cartItemsRepository)
     {
         _itemsRepository = itemsRepository;
         _cartItemsRepository = cartItemsRepository;

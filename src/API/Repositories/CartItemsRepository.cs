@@ -1,7 +1,7 @@
 using Dapper;
 using Npgsql;
 
-public class CartItemsRepository : BaseRepo
+public class CartItemsRepository : BaseRepo, ICartItemsRepository
 {
     public CartItemsRepository(string connectionString) : base(connectionString)
     {
@@ -37,7 +37,7 @@ public class CartItemsRepository : BaseRepo
         ;
     }
 
-    public virtual async Task<IEnumerable<CartItem>> GetCartItemsByCartId(int cartId)
+    public async Task<IEnumerable<CartItem>> GetCartItemsByCartId(int cartId)
     {
         var parameters = new { Id = cartId };
 

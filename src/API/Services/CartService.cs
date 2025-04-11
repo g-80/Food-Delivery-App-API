@@ -1,14 +1,14 @@
 public class CartService
 {
     private readonly CartsRepository _cartsRepo;
-    private readonly CartItemsRepository _cartItemsRepo;
+    private readonly ICartItemsRepository _cartItemsRepo;
     private readonly CartPricingsRepository _cartPricingsRepo;
     private readonly PricingService _pricingService;
     private readonly UnitOfWork _unitOfWork;
 
     public CartService(
         CartsRepository cartsRepository,
-        CartItemsRepository cartItemsRepository,
+        ICartItemsRepository cartItemsRepository,
         CartPricingsRepository cartPricingsRepository,
         PricingService pricingService,
         UnitOfWork unitOfWork)

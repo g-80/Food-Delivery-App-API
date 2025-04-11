@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route("api/carts")]
+[Authorize(Roles = nameof(UserTypes.customer))]
 public class CartsController : ControllerBase
 {
     private readonly CartService _cartService;

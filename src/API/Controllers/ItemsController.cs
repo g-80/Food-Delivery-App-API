@@ -1,15 +1,18 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route("api/items")]
+[Authorize]
 public class ItemsController : ControllerBase
 {
-    private readonly ItemsRepository _itemsRepo;
-    public ItemsController(ItemsRepository repo)
+    private readonly IItemsRepository _itemsRepo;
+    public ItemsController(IItemsRepository repo)
     {
         _itemsRepo = repo;
     }
 
+    [Authorize(Roles = nameof(UserTypes.food_place))]
     [HttpPost]
     public async Task<IActionResult> CreateItem([FromBody] CreateItemRequest itemRequest)
     {
@@ -32,6 +35,7 @@ public class ItemsController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = nameof(UserTypes.food_place))]
     [HttpPut("{id:int:min(1)}")]
     public async Task<IActionResult> UpdateItem([FromRoute] int id, [FromBody] UpdateItemRequest itemRequest)
     {

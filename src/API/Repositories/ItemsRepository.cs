@@ -1,13 +1,13 @@
 using Dapper;
 using Npgsql;
 
-public class ItemsRepository : BaseRepo
+public class ItemsRepository : BaseRepo, IItemsRepository
 {
     public ItemsRepository(string connectionString) : base(connectionString)
     {
     }
 
-    public virtual async Task<Item?> GetItemById(int id)
+    public async Task<Item?> GetItemById(int id)
     {
         var parameters = new { Id = id };
         const string sql = @"

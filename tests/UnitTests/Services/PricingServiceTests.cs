@@ -3,14 +3,14 @@ using Moq;
 
 public class PricingServiceTests
 {
-    private readonly Mock<ItemsRepository> _itemsRepositoryMock;
-    private readonly Mock<CartItemsRepository> _cartItemsRepositoryMock;
+    private readonly Mock<IItemsRepository> _itemsRepositoryMock;
+    private readonly Mock<ICartItemsRepository> _cartItemsRepositoryMock;
     private readonly PricingService _pricingService;
 
     public PricingServiceTests()
     {
-        _itemsRepositoryMock = new Mock<ItemsRepository>("TestConnectionString");
-        _cartItemsRepositoryMock = new Mock<CartItemsRepository>("TestConnectionString");
+        _itemsRepositoryMock = new Mock<IItemsRepository>();
+        _cartItemsRepositoryMock = new Mock<ICartItemsRepository>();
         _pricingService = new PricingService(_itemsRepositoryMock.Object, _cartItemsRepositoryMock.Object);
     }
 

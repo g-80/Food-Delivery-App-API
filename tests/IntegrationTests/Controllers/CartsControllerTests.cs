@@ -1,64 +1,23 @@
 using System.Net.Http.Json;
 using FluentAssertions;
 
-public class CartsControllerTests : IClassFixture<WebApplicationFactoryFixture>
+[Collection("Controllers collection")]
+public class CartsControllerTests
 {
     private readonly WebApplicationFactoryFixture _factory;
-    private readonly CartItemsRepository _cartItemsRepo;
+    private readonly ICartItemsRepository _cartItemsRepo;
     private readonly CartPricingsRepository _cartPricingsRepo;
     private readonly CartService _cartService;
-
-    private readonly TestDataSeeder _seeder;
 
 
     public CartsControllerTests(WebApplicationFactoryFixture factory)
     {
         _factory = factory;
-        _cartItemsRepo = _factory.GetServiceFromContainer<CartItemsRepository>();
+        _cartItemsRepo = _factory.GetServiceFromContainer<ICartItemsRepository>();
         _cartPricingsRepo = _factory.GetServiceFromContainer<CartPricingsRepository>();
         _cartService = _factory.GetServiceFromContainer<CartService>();
-        _seeder = _factory.GetServiceFromContainer<TestDataSeeder>();
+        _factory.SetCustomerAccessToken();
     }
-    // [Fact]
-    // public async Task CreateCart_ShouldReturnCartId()
-    // {
-    //     // Arrange
-    //     var request = new AddItemToCartRequest
-    //     {
-    //         CustomerId = 1,
-    //         Items = TestData.Orders.itemRequests
-    //     };
-
-    //     // Act
-    //     var response = await _factory.Client.PostAsJsonAsync(HttpHelper.Urls.Quotes, request);
-
-    //     // Assert
-    //     response.EnsureSuccessStatusCode();
-    //     var result = await response.Content.ReadFromJsonAsync<CartResponse>();
-    //     result.Should().NotBeNull();
-    //     result!.QuoteId.Should().BeGreaterThan(0);
-    //     result.QuoteToken.Should().NotBeNullOrWhiteSpace();
-
-    //     // Verify the created quote in the database
-    //     var repo = _factory.GetServiceFromContainer<CartsRepository>();
-    //     var createdQuote = await repo.GetCartById(result.QuoteId);
-    //     createdQuote.Should().NotBeNull();
-    //     createdQuote!.CustomerId.Should().Be(request.CustomerId);
-    //     createdQuote.Price.Should().Be(result.QuoteTokenPayload.TotalPrice);
-
-    //     // Verify the created quote items in the database
-    //     var quotesItemsRepo = _factory.GetServiceFromContainer<CartItemsRepository>();
-    //     var createdQuoteItems = await quotesItemsRepo.GetCartItemsByCartId(result.QuoteId);
-    //     createdQuoteItems.Should().NotBeNull();
-    //     createdQuoteItems.Should().HaveCount(request.Items.Count);
-
-    //     foreach (var item in request.Items)
-    //     {
-    //         var matchingItem = createdQuoteItems.Should().ContainSingle(qi => qi.ItemId == item.ItemId && qi.Quantity == item.Quantity);
-    //         matchingItem.Which.QuoteId.Should().Be(result.QuoteId);
-    //         matchingItem.Which.TotalPrice.Should().BeGreaterThan(0);
-    //     }
-    // }
 
     [Fact]
     public async Task AddCartitem_ShouldAddItemAndUpdateCartPricing()

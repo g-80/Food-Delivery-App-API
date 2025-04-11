@@ -11,7 +11,7 @@ public class DatabaseInitializer
         _includeSeedData = includeSeedData;
     }
 
-    public async Task InitializeAsync()
+    public void InitializeDatabase()
     {
         EnsureDatabase.For.PostgresqlDatabase(_connectionString);
         var builder = DeployChanges.To

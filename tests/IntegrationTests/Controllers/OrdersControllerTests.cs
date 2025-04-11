@@ -1,9 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
-using Newtonsoft.Json;
 
-public class OrdersControllerTests : IClassFixture<WebApplicationFactoryFixture>
+[Collection("Controllers collection")]
+public class OrdersControllerTests
 {
     private readonly WebApplicationFactoryFixture _factory;
     private readonly OrdersRepository _ordersRepo;
@@ -18,6 +18,7 @@ public class OrdersControllerTests : IClassFixture<WebApplicationFactoryFixture>
         _orderItemsRepo = _factory.GetServiceFromContainer<OrdersItemsRepository>();
         _cartsRepo = _factory.GetServiceFromContainer<CartsRepository>();
         _seeder = _factory.GetServiceFromContainer<TestDataSeeder>();
+        _factory.SetCustomerAccessToken();
     }
 
     [Fact]

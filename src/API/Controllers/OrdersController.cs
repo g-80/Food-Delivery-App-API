@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route("api/orders")]
+[Authorize]
 public class OrdersController : ControllerBase
 {
     private readonly OrderService _orderService;
@@ -11,6 +13,7 @@ public class OrdersController : ControllerBase
         _orderService = orderService;
     }
 
+    [Authorize(Roles = nameof(UserTypes.customer))]
     [HttpPost]
     public async Task<IActionResult> CreateOrder()
     {

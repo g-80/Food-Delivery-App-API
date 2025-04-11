@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route("api/food-places")]
+[Authorize]
 public class FoodPlacesController : ControllerBase
 {
     private readonly FoodPlacesRepository _foodPlacesRepo;

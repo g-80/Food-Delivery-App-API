@@ -4,25 +4,18 @@ public class OrderService
     private readonly OrdersItemsRepository _ordersItemsRepo;
     private readonly CartService _cartService;
     private readonly CartsRepository _cartsRepo;
-    private readonly CartItemsRepository _cartItemsRepo;
-    private readonly CartPricingsRepository _cartPricingsRepo;
-
     private readonly UnitOfWork _unitOfWork;
 
     public OrderService(
         OrdersRepository ordersRepo,
         OrdersItemsRepository ordersItemsRepository,
         CartsRepository cartsRepository,
-        CartItemsRepository cartItemsRepository,
-        CartPricingsRepository cartPricingsRepository,
         CartService cartService,
         UnitOfWork unitOfWork)
     {
         _ordersRepo = ordersRepo;
         _ordersItemsRepo = ordersItemsRepository;
         _cartsRepo = cartsRepository;
-        _cartItemsRepo = cartItemsRepository;
-        _cartPricingsRepo = cartPricingsRepository;
         _cartService = cartService;
         _unitOfWork = unitOfWork;
     }
