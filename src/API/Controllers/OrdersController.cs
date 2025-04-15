@@ -6,9 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 [Authorize]
 public class OrdersController : ControllerBase
 {
-    private readonly OrderService _orderService;
+    private readonly IOrderService _orderService;
 
-    public OrdersController(OrderService orderService)
+    public OrdersController(IOrderService orderService)
     {
         _orderService = orderService;
     }
@@ -46,4 +46,3 @@ public class OrdersController : ControllerBase
         return Ok(new OrderResponse { OrderId = order.Id, TotalPrice = order.TotalPrice });
     }
 }
-

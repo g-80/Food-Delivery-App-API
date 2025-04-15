@@ -6,17 +6,17 @@ using FluentAssertions;
 public class OrdersControllerTests
 {
     private readonly WebApplicationFactoryFixture _factory;
-    private readonly OrdersRepository _ordersRepo;
-    private readonly OrdersItemsRepository _orderItemsRepo;
-    private readonly CartsRepository _cartsRepo;
+    private readonly IOrdersRepository _ordersRepo;
+    private readonly IOrdersItemsRepository _orderItemsRepo;
+    private readonly ICartItemsRepository _cartItemsRepo;
     private readonly TestDataSeeder _seeder;
 
     public OrdersControllerTests(WebApplicationFactoryFixture factory)
     {
         _factory = factory;
-        _ordersRepo = _factory.GetServiceFromContainer<OrdersRepository>();
-        _orderItemsRepo = _factory.GetServiceFromContainer<OrdersItemsRepository>();
-        _cartsRepo = _factory.GetServiceFromContainer<CartsRepository>();
+        _ordersRepo = _factory.GetServiceFromContainer<IOrdersRepository>();
+        _orderItemsRepo = _factory.GetServiceFromContainer<IOrdersItemsRepository>();
+        _cartItemsRepo = _factory.GetServiceFromContainer<ICartItemsRepository>();
         _seeder = _factory.GetServiceFromContainer<TestDataSeeder>();
         _factory.SetCustomerAccessToken();
     }
@@ -24,6 +24,8 @@ public class OrdersControllerTests
     [Fact]
     public async Task CreateOrder_WithValidRequest_ShouldCreateOrderAndItems()
     {
+        // Arrange
+
         // Act
         var response = await _factory.Client.PostAsync(HttpHelper.Urls.Orders, null);
 
@@ -33,7 +35,6 @@ public class OrdersControllerTests
         int orderId = result!.OrderId;
         orderId.Should().BeGreaterThan(0);
 
-        // Verify database entries using repositories
         var order = await _ordersRepo.GetOrderById(orderId);
         order.Should().NotBeNull();
 
@@ -42,13 +43,14 @@ public class OrdersControllerTests
 
         foreach (var orderItem in orderItems)
         {
-            var matchingCartItem = TestData.Carts.CreateCartItemDTOs().First(cartItem => cartItem.RequestedItem.ItemId == orderItem.ItemId);
+            var matchingCartItem = TestData
+                .Carts.CreateCartItemDTOs()
+                .First(cartItem => cartItem.RequestedItem.ItemId == orderItem.ItemId);
             orderItem.Quantity.Should().Be(matchingCartItem.RequestedItem.Quantity);
         }
 
-        // Verify quote is marked as used
-        var updatedQuote = await _cartsRepo.GetCartById(TestData.Carts.assignedCartId);
-        updatedQuote!.IsUsed.Should().BeTrue();
+        var cartItems = await _cartItemsRepo.GetCartItemsByCartId(TestData.Carts.assignedCartId);
+        cartItems.Count().Should().Be(0);
     }
 
     [Fact]
@@ -58,7 +60,10 @@ public class OrdersControllerTests
         var orderId = await _seeder.SeedOrderAndOrderItems();
 
         // Act
-        var response = await _factory.Client.PatchAsync(HttpHelper.Urls.CancelOrder + orderId, null);
+        var response = await _factory.Client.PatchAsync(
+            HttpHelper.Urls.CancelOrder + orderId,
+            null
+        );
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);

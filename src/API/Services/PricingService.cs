@@ -1,9 +1,12 @@
-public class PricingService
+public class PricingService : IPricingService
 {
     private readonly IItemsRepository _itemsRepository;
     private readonly ICartItemsRepository _cartItemsRepository;
 
-    public PricingService(IItemsRepository itemsRepository, ICartItemsRepository cartItemsRepository)
+    public PricingService(
+        IItemsRepository itemsRepository,
+        ICartItemsRepository cartItemsRepository
+    )
     {
         _itemsRepository = itemsRepository;
         _cartItemsRepository = cartItemsRepository;
@@ -11,7 +14,9 @@ public class PricingService
 
     public async Task<(int, int)> CalculateItemPriceAsync(RequestedItem requestedItem)
     {
-        Item item = await _itemsRepository.GetItemById(requestedItem.ItemId) ?? throw new Exception($"Item with ID: {requestedItem.ItemId} not found");
+        Item item =
+            await _itemsRepository.GetItemById(requestedItem.ItemId)
+            ?? throw new Exception($"Item with ID: {requestedItem.ItemId} not found");
         return (item.Price, item.Price * requestedItem.Quantity);
     }
 
@@ -27,7 +32,7 @@ public class PricingService
             Subtotal = subtotal,
             Fees = fees,
             DeliveryFee = deliveryFee,
-            Total = subtotal + fees + deliveryFee
+            Total = subtotal + fees + deliveryFee,
         };
     }
 }

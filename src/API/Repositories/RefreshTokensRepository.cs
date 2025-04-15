@@ -1,7 +1,7 @@
 using Dapper;
 using Npgsql;
 
-public class RefreshTokensRepository : BaseRepo, IRefreshTokensRepository
+public class RefreshTokensRepository : BaseRepository, IRefreshTokensRepository
 {
     public RefreshTokensRepository(string connectionString) : base(connectionString)
     {

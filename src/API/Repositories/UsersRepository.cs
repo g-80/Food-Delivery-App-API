@@ -1,7 +1,7 @@
 using Dapper;
 using Npgsql;
 
-public class UsersRepository : BaseRepo, IUsersRepository
+public class UsersRepository : BaseRepository, IUsersRepository
 {
     public UsersRepository(string connectionString) : base(connectionString)
     {

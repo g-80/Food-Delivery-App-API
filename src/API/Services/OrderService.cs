@@ -1,21 +1,19 @@
-public class OrderService
+public class OrderService : IOrderService
 {
-    private readonly OrdersRepository _ordersRepo;
-    private readonly OrdersItemsRepository _ordersItemsRepo;
-    private readonly CartService _cartService;
-    private readonly CartsRepository _cartsRepo;
+    private readonly IOrdersRepository _ordersRepo;
+    private readonly IOrdersItemsRepository _ordersItemsRepo;
+    private readonly ICartService _cartService;
     private readonly UnitOfWork _unitOfWork;
 
     public OrderService(
-        OrdersRepository ordersRepo,
-        OrdersItemsRepository ordersItemsRepository,
-        CartsRepository cartsRepository,
-        CartService cartService,
-        UnitOfWork unitOfWork)
+        IOrdersRepository ordersRepo,
+        IOrdersItemsRepository ordersItemsRepository,
+        ICartService cartService,
+        UnitOfWork unitOfWork
+    )
     {
         _ordersRepo = ordersRepo;
         _ordersItemsRepo = ordersItemsRepository;
-        _cartsRepo = cartsRepository;
         _cartService = cartService;
         _unitOfWork = unitOfWork;
     }
@@ -25,39 +23,39 @@ public class OrderService
         Cart? cart = await _cartService.GetCartByCustomerIdAsync(customerId);
         if (cart == null)
             throw new CartNotFoundException();
-        if (cart!.IsUsed)
-            throw new Exception("Cart has already been checked out");
 
         var cartDetails = await _cartService.GetCartDetailsAsync(customerId);
         if (!cartDetails.CartItems.Any())
-            throw new EmptyCartException();
+            throw new InvalidOperationException("Cart is empty");
 
         using (_unitOfWork)
         {
             try
             {
                 _unitOfWork.BeginTransaction();
-                await _cartsRepo.SetCartAsUsed(cart.Id, _unitOfWork.Transaction);
 
-                int orderId = await _ordersRepo.CreateOrder(new CreateOrderDTO
-                {
-                    CustomerId = customerId,
-                    TotalPrice = cartDetails.Total
-                },
-                _unitOfWork.Transaction);
+                int orderId = await _ordersRepo.CreateOrder(
+                    new CreateOrderDTO { CustomerId = customerId, TotalPrice = cartDetails.Total },
+                    _unitOfWork.Transaction
+                );
 
                 foreach (var item in cartDetails.CartItems)
                 {
                     await _ordersItemsRepo.CreateOrderItem(
                         new CreateOrderItemDTO
                         {
-                            RequestedItem = new RequestedItem { ItemId = item.ItemId, Quantity = item.Quantity },
+                            RequestedItem = new RequestedItem
+                            {
+                                ItemId = item.ItemId,
+                                Quantity = item.Quantity,
+                            },
                             OrderId = orderId,
-                            Subtotal = item.Subtotal
+                            Subtotal = item.Subtotal,
                         },
                         _unitOfWork.Transaction
                     );
                 }
+                await _cartService.ResetCartAsync(cart.Id);
                 _unitOfWork.Commit();
                 return orderId;
             }

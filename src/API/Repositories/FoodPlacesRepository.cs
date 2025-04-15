@@ -1,17 +1,28 @@
-using Npgsql;
 using Dapper;
+using Npgsql;
 
-public class FoodPlacesRepository : BaseRepo
+public class FoodPlacesRepository : BaseRepository, IFoodPlacesRepository
 {
-    const int DEFAULT_DISTANCE = 3000;
-    public FoodPlacesRepository(string connectionString) : base(connectionString)
+    private readonly int _distanceMeters = 3000;
+
+    public FoodPlacesRepository(string connectionString, int distance)
+        : base(connectionString)
     {
+        _distanceMeters = distance;
     }
 
-    public async Task<IEnumerable<FoodPlace>> GetFoodPlacesWithinDistance(NearbyFoodPlacesRequest query)
+    public async Task<IEnumerable<FoodPlace>> GetFoodPlacesWithinDistance(
+        NearbyFoodPlacesRequest query
+    )
     {
-        var parameters = new { query.Latitude, query.Longitude, Distance = DEFAULT_DISTANCE };
-        const string sql = @"
+        var parameters = new
+        {
+            query.Latitude,
+            query.Longitude,
+            Distance = _distanceMeters,
+        };
+        const string sql =
+            @"
             SELECT
                 id,
                 name,
@@ -30,10 +41,19 @@ public class FoodPlacesRepository : BaseRepo
         ;
     }
 
-    public async Task<IEnumerable<FoodPlace>> SearchFoodPlacesWithinDistance(SearchFoodPlacesRequest query)
+    public async Task<IEnumerable<FoodPlace>> SearchFoodPlacesWithinDistance(
+        SearchFoodPlacesRequest query
+    )
     {
-        var parameters = new { query.Latitude, query.Longitude, Distance = DEFAULT_DISTANCE, query.SearchQuery };
-        const string sql = @"
+        var parameters = new
+        {
+            query.Latitude,
+            query.Longitude,
+            query.SearchQuery,
+            Distance = _distanceMeters,
+        };
+        const string sql =
+            @"
             SELECT
                 id,
                 name,
@@ -52,10 +72,12 @@ public class FoodPlacesRepository : BaseRepo
         }
         ;
     }
+
     public async Task<FoodPlace?> GetFoodPlace(int id)
     {
         var parameters = new { Id = id };
-        const string sql = @"
+        const string sql =
+            @"
             SELECT
                 id,
                 name,
@@ -73,10 +95,18 @@ public class FoodPlacesRepository : BaseRepo
         ;
     }
 
-    public async Task<int> CreateFoodPlace(FoodPlace foodPlace)
+    public async Task<int> CreateFoodPlace(FoodPlaceCreateRequest request)
     {
-        var parameters = new { foodPlace.Name, foodPlace.Description, foodPlace.Category, foodPlace.Latitude, foodPlace.Longitude };
-        const string sql = @"
+        var parameters = new
+        {
+            request.Name,
+            request.Description,
+            request.Category,
+            request.Latitude,
+            request.Longitude,
+        };
+        const string sql =
+            @"
             INSERT INTO food_places(name, description, category, latitude, longitude)
             VALUES
             (@Name, @Description, @Category, @Latitude, @Longitude)

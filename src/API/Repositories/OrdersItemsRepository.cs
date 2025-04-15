@@ -1,16 +1,16 @@
 using Dapper;
 using Npgsql;
 
-public class OrdersItemsRepository : BaseRepo
+public class OrdersItemsRepository : BaseRepository, IOrdersItemsRepository
 {
-    public OrdersItemsRepository(string connectionString) : base(connectionString)
-    {
-    }
+    public OrdersItemsRepository(string connectionString)
+        : base(connectionString) { }
 
     public async Task<OrderItem?> GetOrderItemById(int id)
     {
         var parameters = new { Id = id };
-        const string sql = @"
+        const string sql =
+            @"
             SELECT
                 id,
                 order_id,
@@ -27,10 +27,20 @@ public class OrdersItemsRepository : BaseRepo
         ;
     }
 
-    public async Task<int> CreateOrderItem(CreateOrderItemDTO dto, NpgsqlTransaction? transaction = null)
+    public async Task<int> CreateOrderItem(
+        CreateOrderItemDTO dto,
+        NpgsqlTransaction? transaction = null
+    )
     {
-        var parameters = new { dto.OrderId, dto.RequestedItem.ItemId, dto.RequestedItem.Quantity, dto.Subtotal };
-        const string sql = @"
+        var parameters = new
+        {
+            dto.OrderId,
+            dto.RequestedItem.ItemId,
+            dto.RequestedItem.Quantity,
+            dto.Subtotal,
+        };
+        const string sql =
+            @"
             INSERT INTO order_items(order_id, item_id, quantity, subtotal)
             VALUES
             (@OrderId, @ItemId, @Quantity, @Subtotal)
@@ -38,7 +48,11 @@ public class OrdersItemsRepository : BaseRepo
         ";
         if (transaction != null)
         {
-            return await transaction.Connection!.ExecuteScalarAsync<int>(sql, parameters, transaction);
+            return await transaction.Connection!.ExecuteScalarAsync<int>(
+                sql,
+                parameters,
+                transaction
+            );
         }
         using (var connection = new NpgsqlConnection(_connectionString))
         {
@@ -51,7 +65,8 @@ public class OrdersItemsRepository : BaseRepo
     {
         var parameters = new { Id = orderId };
 
-        const string sql = @"
+        const string sql =
+            @"
             SELECT
                 id,
                 order_id,
@@ -67,5 +82,4 @@ public class OrdersItemsRepository : BaseRepo
         }
         ;
     }
-
 }

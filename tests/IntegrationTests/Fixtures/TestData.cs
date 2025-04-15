@@ -6,33 +6,31 @@ internal static class TestData
     public static class FoodPlaces
     {
         public static (double, double) locationLatLong = (51.516061, -0.157185);
-        public static List<FoodPlace> foodPlacesFixtures = new List<FoodPlace>
+        public static List<FoodPlaceCreateRequest> foodPlacesFixtures = new()
         {
-            new FoodPlace
+            new FoodPlaceCreateRequest
             {
                 Name = "First food place",
                 Category = "Pizzeria",
                 Latitude = 51.5156732,
                 Longitude = -0.1522338,
-                CreatedAt = DateTime.UtcNow
             },
-            new FoodPlace
+            new FoodPlaceCreateRequest
             {
                 Name = "Second food place",
                 Category = "Coffee shop",
                 Latitude = 51.5162493,
                 Longitude = -0.1527786,
-                CreatedAt = DateTime.UtcNow
             },
-            new FoodPlace
+            new FoodPlaceCreateRequest
             {
                 Name = "Third food place",
                 Category = "Greek",
                 Latitude = 51.516791,
                 Longitude = -0.151466,
-                CreatedAt = DateTime.UtcNow
-            }
+            },
         };
+        public static readonly List<int> assignedIds = new();
     }
 
     public static class Items
@@ -45,7 +43,7 @@ internal static class TestData
                 Description = "Very nice pizza",
                 FoodPlaceId = 1,
                 IsAvailable = true,
-                Price = 750
+                Price = 750,
             },
             new CreateItemRequest
             {
@@ -53,8 +51,8 @@ internal static class TestData
                 Description = "Very nice vegetarian pizza",
                 FoodPlaceId = 1,
                 IsAvailable = true,
-                Price = 570
-            }
+                Price = 570,
+            },
         };
 
         // Storage for IDs assigned by database
@@ -67,29 +65,34 @@ internal static class TestData
         public static readonly List<RequestedItem> itemRequests = new()
         {
             new() { ItemId = 1, Quantity = 2 },
-            new() { ItemId = 2, Quantity = 1 }
+            new() { ItemId = 2, Quantity = 1 },
         };
 
-        public static List<int> prices = itemRequests.Zip(Items.defaults, (itemReq, itemData) => itemData.Price * itemReq.Quantity).ToList();
+        public static List<int> prices = itemRequests
+            .Zip(Items.defaults, (itemReq, itemData) => itemData.Price * itemReq.Quantity)
+            .ToList();
 
         public static CreateCartDTO CreateCartDTO(int customerId = 1)
         {
             return new CreateCartDTO
             {
                 CustomerId = customerId,
-                Expiry = DateTime.UtcNow.AddMinutes(5)
+                Expiry = DateTime.UtcNow.AddMinutes(5),
             };
         }
 
         public static IEnumerable<CreateCartItemDTO> CreateCartItemDTOs(int cartId = 1)
         {
-            return itemRequests.Select((item, i) => new CreateCartItemDTO
-            {
-                RequestedItem = item,
-                CartId = cartId,
-                UnitPrice = Items.defaults[i].Price,
-                Subtotal = Items.defaults[i].Price * itemRequests[i].Quantity,
-            });
+            return itemRequests.Select(
+                (item, i) =>
+                    new CreateCartItemDTO
+                    {
+                        RequestedItem = item,
+                        CartId = cartId,
+                        UnitPrice = Items.defaults[i].Price,
+                        Subtotal = Items.defaults[i].Price * itemRequests[i].Quantity,
+                    }
+            );
         }
 
         public static CartPricingDTO CreateCartPricingDTO(int cartId = 1)
@@ -112,11 +115,7 @@ internal static class TestData
     {
         public static CreateOrderDTO CreateOrderDTO(int customerId = 1)
         {
-            return new CreateOrderDTO
-            {
-                CustomerId = customerId,
-                TotalPrice = Carts.prices.Sum()
-            };
+            return new CreateOrderDTO { CustomerId = customerId, TotalPrice = Carts.prices.Sum() };
         }
     }
 
@@ -130,7 +129,7 @@ internal static class TestData
                 Surname = "Reporting",
                 Password = "very_secure_password_123",
                 PhoneNumber = "07123456789",
-                UserType = UserTypes.customer
+                UserType = UserTypes.customer,
             },
             new()
             {
@@ -138,11 +137,16 @@ internal static class TestData
                 Surname = "Doe",
                 Password = "very_secure_password_123",
                 PhoneNumber = "07123123123",
-                UserType = UserTypes.food_place
-            }
+                UserType = UserTypes.food_place,
+            },
         };
 
-        public static readonly List<UserLoginRequest> loginRequests = createUserRequests.Select(
-            req => new UserLoginRequest { PhoneNumber = req.PhoneNumber, Password = req.Password }).ToList();
+        public static readonly List<UserLoginRequest> loginRequests = createUserRequests
+            .Select(req => new UserLoginRequest
+            {
+                PhoneNumber = req.PhoneNumber,
+                Password = req.Password,
+            })
+            .ToList();
     }
 }

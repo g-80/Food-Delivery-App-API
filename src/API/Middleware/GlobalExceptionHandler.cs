@@ -6,15 +6,20 @@ public class GlobalExceptionHandler : IExceptionHandler
     private readonly IWebHostEnvironment _environment;
     private readonly ILogger<GlobalExceptionHandler> _logger;
 
-    public GlobalExceptionHandler(IWebHostEnvironment environment, ILogger<GlobalExceptionHandler> logger)
+    public GlobalExceptionHandler(
+        IWebHostEnvironment environment,
+        ILogger<GlobalExceptionHandler> logger
+    )
     {
         _environment = environment;
         _logger = logger;
     }
+
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
         Exception exception,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         LogException(httpContext, exception);
 
@@ -22,14 +27,15 @@ public class GlobalExceptionHandler : IExceptionHandler
 
         var (statusCode, detailedMessage) = exception switch
         {
-            CartNotFoundException ex => (StatusCodes.Status400BadRequest, ex.Message),
-            EmptyCartException ex => (StatusCodes.Status400BadRequest, ex.Message),
-            _ => (StatusCodes.Status500InternalServerError, "An unexpected error occurred.")
+            InvalidOperationException ex => (StatusCodes.Status400BadRequest, ex.Message),
+            CartNotFoundException ex => (StatusCodes.Status500InternalServerError, ex.Message),
+            _ => (StatusCodes.Status500InternalServerError, "An unexpected error occurred."),
         };
 
-        string clientMessage = statusCode == StatusCodes.Status500InternalServerError
-        ? detailedMessage
-        : "An unexpected error occurred.";
+        string clientMessage =
+            statusCode == StatusCodes.Status500InternalServerError
+                ? detailedMessage
+                : "An unexpected error occurred.";
 
         if (_environment.IsDevelopment())
         {
@@ -38,11 +44,7 @@ public class GlobalExceptionHandler : IExceptionHandler
 
         httpContext.Response.StatusCode = statusCode;
 
-        var response = new ProblemDetails
-        {
-            Status = statusCode,
-            Title = clientMessage,
-        };
+        var response = new ProblemDetails { Status = statusCode, Title = clientMessage };
 
         await httpContext.Response.WriteAsJsonAsync(response, cancellationToken);
         return true;
@@ -63,7 +65,8 @@ public class GlobalExceptionHandler : IExceptionHandler
                 requestMethod,
                 requestPath,
                 exceptionType,
-                exceptionMessage);
+                exceptionMessage
+            );
         }
         else
         {
@@ -73,7 +76,8 @@ public class GlobalExceptionHandler : IExceptionHandler
                 requestMethod,
                 requestPath,
                 exceptionType,
-                exceptionMessage);
+                exceptionMessage
+            );
         }
     }
 }

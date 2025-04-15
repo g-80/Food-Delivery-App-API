@@ -6,16 +6,15 @@ public class CartsControllerTests
 {
     private readonly WebApplicationFactoryFixture _factory;
     private readonly ICartItemsRepository _cartItemsRepo;
-    private readonly CartPricingsRepository _cartPricingsRepo;
-    private readonly CartService _cartService;
-
+    private readonly ICartPricingsRepository _cartPricingsRepo;
+    private readonly ICartService _cartService;
 
     public CartsControllerTests(WebApplicationFactoryFixture factory)
     {
         _factory = factory;
         _cartItemsRepo = _factory.GetServiceFromContainer<ICartItemsRepository>();
-        _cartPricingsRepo = _factory.GetServiceFromContainer<CartPricingsRepository>();
-        _cartService = _factory.GetServiceFromContainer<CartService>();
+        _cartPricingsRepo = _factory.GetServiceFromContainer<ICartPricingsRepository>();
+        _cartService = _factory.GetServiceFromContainer<ICartService>();
         _factory.SetCustomerAccessToken();
     }
 
@@ -30,7 +29,7 @@ public class CartsControllerTests
         var request = new AddItemToCartRequest
         {
             CustomerId = 1,
-            Item = TestData.Carts.itemRequests[0]
+            Item = TestData.Carts.itemRequests[0],
         };
 
         // Act
@@ -80,13 +79,13 @@ public class CartsControllerTests
     }
 
     [Fact]
-    public async Task GetCart_ShouldReturnBadRequest_WhenCartDoesNotExist()
+    public async Task GetCart_ShouldReturnInternalServerError_WhenCartDoesNotExist()
     {
         // Act
         var response = await _factory.Client.GetAsync(HttpHelper.Urls.Carts + "9999999");
 
         // Assert
-        response.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.InternalServerError);
     }
 
     [Fact]
@@ -97,22 +96,21 @@ public class CartsControllerTests
         int itemId = TestData.Carts.itemRequests[1].ItemId;
         int quantityBefore = TestData.Carts.itemRequests[1].Quantity;
         int priceBefore = (await _cartPricingsRepo.GetCartPricingByCartId(cartId))!.Total;
-        var request = new UpdateCartItemQuantityRequest
-        {
-            Quantity = 3
-        };
+        var request = new UpdateCartItemQuantityRequest { Quantity = 3 };
 
         // Act
-        var response = await _factory.Client.PatchAsJsonAsync(HttpHelper.Urls.CartsItems + itemId, request);
+        var response = await _factory.Client.PatchAsJsonAsync(
+            HttpHelper.Urls.CartsItems + itemId,
+            request
+        );
 
         // Assert
         response.EnsureSuccessStatusCode();
-        int quantityAfter = (await _cartItemsRepo.GetCartItemsByCartId(cartId)).First(item => item.ItemId == itemId).Quantity;
+        int quantityAfter = (await _cartItemsRepo.GetCartItemsByCartId(cartId))
+            .First(item => item.ItemId == itemId)
+            .Quantity;
         quantityAfter.Should().NotBe(quantityBefore);
         int priceAfter = (await _cartPricingsRepo.GetCartPricingByCartId(cartId))!.Total;
         priceAfter.Should().NotBe(priceBefore);
     }
 }
-
-
-

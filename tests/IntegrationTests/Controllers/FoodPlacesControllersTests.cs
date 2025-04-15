@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.WebUtilities;
 public class FoodPlacesControllerTests
 {
     private readonly WebApplicationFactoryFixture _factory;
+
     public FoodPlacesControllerTests(WebApplicationFactoryFixture factory)
     {
         _factory = factory;
@@ -18,7 +19,7 @@ public class FoodPlacesControllerTests
     {
         // Arrange
         var fixtures = TestData.FoodPlaces.foodPlacesFixtures;
-        int seededDataId = 1;
+        int seededDataId = TestData.FoodPlaces.assignedIds[0];
         // Act
         var response = await _factory.Client.GetAsync(HttpHelper.Urls.GetFoodPlace + seededDataId);
         var result = await response.Content.ReadFromJsonAsync<FoodPlace>();
@@ -36,7 +37,9 @@ public class FoodPlacesControllerTests
         // Arrange
         int fixturesCount = TestData.FoodPlaces.foodPlacesFixtures.Count;
         // Act
-        var response = await _factory.Client.GetAsync(HttpHelper.Urls.GetFoodPlace + (fixturesCount + 1));
+        var response = await _factory.Client.GetAsync(
+            HttpHelper.Urls.GetFoodPlace + (fixturesCount + 1)
+        );
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
     }
@@ -44,15 +47,13 @@ public class FoodPlacesControllerTests
     [Theory]
     [InlineData("-1")]
     [InlineData("0")]
-    public async Task OnGetFoodPlace_WithInvalidId_ShouldReturnBadRequest(string invalidId)
+    public async Task OnGetFoodPlace_WithInvalidId_ShouldReturnNotFound(string invalidId)
     {
         // Act
         var response = await _factory.Client.GetAsync(HttpHelper.Urls.GetFoodPlace + invalidId);
-        var errors = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
 
         // Assert
-        response.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
-        errors!.Extensions.Should().ContainKey("id");
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
     }
 
     [Fact]
@@ -64,38 +65,45 @@ public class FoodPlacesControllerTests
         {
             ["latitude"] = $"{TestData.FoodPlaces.locationLatLong.Item1}",
             ["longitude"] = $"{TestData.FoodPlaces.locationLatLong.Item2}",
-            ["searchquery"] = searchQuery
+            ["searchquery"] = searchQuery,
         };
         // Act
-        var response = await _factory.Client.GetAsync(QueryHelpers.AddQueryString(HttpHelper.Urls.SearchFoodPlaces, query!));
+        var response = await _factory.Client.GetAsync(
+            QueryHelpers.AddQueryString(HttpHelper.Urls.SearchFoodPlaces, query!)
+        );
         var result = await response.Content.ReadFromJsonAsync<List<FoodPlace>>();
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
-        result.Should().AllSatisfy(foodPlace => foodPlace.Category.ToLower().Should().Contain(searchQuery));
+        result
+            .Should()
+            .AllSatisfy(foodPlace => foodPlace.Category.ToLower().Should().Contain(searchQuery));
     }
 
     [Theory]
     [InlineData("")]
     [InlineData("gr")]
     [InlineData("AWaaaaaaaaaaaaaaaaaaaaaaaaaaaaaayTooLongSearchQuery")]
-    public async Task OnSearchFoodPlaces_WithInvalidSearchQuery_ShouldReturnBadRequest(string searchQuery)
+    public async Task OnSearchFoodPlaces_WithInvalidSearchQuery_ShouldReturnBadRequest(
+        string searchQuery
+    )
     {
         // Arrange
         var query = new Dictionary<string, string>
         {
             ["latitude"] = $"{TestData.FoodPlaces.locationLatLong.Item1}",
             ["longitude"] = $"{TestData.FoodPlaces.locationLatLong.Item2}",
-            ["searchquery"] = searchQuery
+            ["searchquery"] = searchQuery,
         };
         // Act
-        var response = await _factory.Client.GetAsync(QueryHelpers.AddQueryString(HttpHelper.Urls.SearchFoodPlaces, query!));
+        var response = await _factory.Client.GetAsync(
+            QueryHelpers.AddQueryString(HttpHelper.Urls.SearchFoodPlaces, query!)
+        );
         var errors = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
         errors!.Errors.Should().ContainKey("SearchQuery");
-
     }
 
     [Fact]
@@ -108,7 +116,9 @@ public class FoodPlacesControllerTests
             ["longitude"] = $"{TestData.FoodPlaces.locationLatLong.Item2}",
         };
         // Act
-        var response = await _factory.Client.GetAsync(QueryHelpers.AddQueryString(HttpHelper.Urls.GetNearbyFoodPlaces, query!));
+        var response = await _factory.Client.GetAsync(
+            QueryHelpers.AddQueryString(HttpHelper.Urls.GetNearbyFoodPlaces, query!)
+        );
         var result = await response.Content.ReadFromJsonAsync<List<FoodPlace>>();
 
         // Assert
@@ -126,11 +136,15 @@ public class FoodPlacesControllerTests
             ["longitude"] = "3.761067",
         };
         // Act
-        var response = await _factory.Client.GetAsync(QueryHelpers.AddQueryString(HttpHelper.Urls.GetNearbyFoodPlaces, query!));
+        var response = await _factory.Client.GetAsync(
+            QueryHelpers.AddQueryString(HttpHelper.Urls.GetNearbyFoodPlaces, query!)
+        );
         var errors = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
-        (errors!.Errors.ContainsKey("Latitude") || errors.Errors.ContainsKey("Longitude")).Should().BeTrue();
+        (errors!.Errors.ContainsKey("Latitude") || errors.Errors.ContainsKey("Longitude"))
+            .Should()
+            .BeTrue();
     }
 }

@@ -1,16 +1,16 @@
 using Dapper;
 using Npgsql;
 
-public class CartPricingsRepository : BaseRepo
+public class CartPricingsRepository : BaseRepository, ICartPricingsRepository
 {
-    public CartPricingsRepository(string connectionString) : base(connectionString)
-    {
-    }
+    public CartPricingsRepository(string connectionString)
+        : base(connectionString) { }
 
     public async Task<CartPricing?> GetCartPricingByCartId(int cartId)
     {
         var parameters = new { Id = cartId };
-        const string sql = @"
+        const string sql =
+            @"
             SELECT *
             FROM cart_pricings
             WHERE cart_id = @Id
@@ -24,8 +24,16 @@ public class CartPricingsRepository : BaseRepo
 
     public async Task CreateCartPricing(CartPricingDTO dto, NpgsqlTransaction? transaction = null)
     {
-        var parameters = new { dto.CartId, dto.Subtotal, dto.Fees, dto.DeliveryFee, dto.Total };
-        const string sql = @"
+        var parameters = new
+        {
+            dto.CartId,
+            dto.Subtotal,
+            dto.Fees,
+            dto.DeliveryFee,
+            dto.Total,
+        };
+        const string sql =
+            @"
             INSERT INTO cart_pricings
             VALUES
             (@CartId, @Subtotal, @Fees, @DeliveryFee, @Total)
@@ -45,7 +53,8 @@ public class CartPricingsRepository : BaseRepo
     {
         var parameters = new { Id = id };
 
-        const string sql = @"
+        const string sql =
+            @"
             DELETE FROM cart_pricings
             WHERE id = @Id
         ";
@@ -60,7 +69,8 @@ public class CartPricingsRepository : BaseRepo
     {
         var parameters = dto;
 
-        const string sql = @"
+        const string sql =
+            @"
             UPDATE cart_pricings
             SET subtotal = @Subtotal, fees = @Fees, delivery_fee = @DeliveryFee, total = @Total
             WHERE cart_id = @CartId
@@ -71,5 +81,4 @@ public class CartPricingsRepository : BaseRepo
         }
         ;
     }
-
 }

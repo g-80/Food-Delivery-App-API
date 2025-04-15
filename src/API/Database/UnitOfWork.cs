@@ -3,12 +3,15 @@ using Npgsql;
 public class UnitOfWork : IDisposable
 {
     private readonly string _connectionString;
+
     public UnitOfWork(string connectionString)
     {
         _connectionString = connectionString;
     }
+
     public NpgsqlConnection? Connection { get; private set; }
     public NpgsqlTransaction? Transaction { get; private set; }
+
     public void BeginTransaction()
     {
         if (Connection == null)

@@ -6,9 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 [Authorize(Roles = nameof(UserTypes.customer))]
 public class CartsController : ControllerBase
 {
-    private readonly CartService _cartService;
+    private readonly ICartService _cartService;
 
-    public CartsController(CartService cartService)
+    public CartsController(ICartService cartService)
     {
         _cartService = cartService;
     }
@@ -32,7 +32,10 @@ public class CartsController : ControllerBase
     }
 
     [HttpPatch("items/{id:int:min(1)}")]
-    public async Task<IActionResult> UpdateCartItemQuantity([FromRoute] int id, [FromBody] UpdateCartItemQuantityRequest req)
+    public async Task<IActionResult> UpdateCartItemQuantity(
+        [FromRoute] int id,
+        [FromBody] UpdateCartItemQuantityRequest req
+    )
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);

@@ -1,17 +1,18 @@
-public class CartService
+public class CartService : ICartService
 {
-    private readonly CartsRepository _cartsRepo;
+    private readonly ICartsRepository _cartsRepo;
     private readonly ICartItemsRepository _cartItemsRepo;
-    private readonly CartPricingsRepository _cartPricingsRepo;
-    private readonly PricingService _pricingService;
+    private readonly ICartPricingsRepository _cartPricingsRepo;
+    private readonly IPricingService _pricingService;
     private readonly UnitOfWork _unitOfWork;
 
     public CartService(
-        CartsRepository cartsRepository,
+        ICartsRepository cartsRepository,
         ICartItemsRepository cartItemsRepository,
-        CartPricingsRepository cartPricingsRepository,
-        PricingService pricingService,
-        UnitOfWork unitOfWork)
+        ICartPricingsRepository cartPricingsRepository,
+        IPricingService pricingService,
+        UnitOfWork unitOfWork
+    )
     {
         _cartsRepo = cartsRepository;
         _cartItemsRepo = cartItemsRepository;
@@ -31,9 +32,10 @@ public class CartService
                     new CreateCartDTO
                     {
                         CustomerId = customerId,
-                        Expiry = DateTime.UtcNow.AddMinutes(5)
+                        Expiry = DateTime.UtcNow.AddMinutes(5),
                     },
-                    _unitOfWork.Transaction);
+                    _unitOfWork.Transaction
+                );
                 await _cartPricingsRepo.CreateCartPricing(
                     new CartPricingDTO
                     {
@@ -43,7 +45,8 @@ public class CartService
                         DeliveryFee = 0,
                         Total = 0,
                     },
-                    _unitOfWork.Transaction);
+                    _unitOfWork.Transaction
+                );
 
                 _unitOfWork.Commit();
                 return cartId;
@@ -58,7 +61,8 @@ public class CartService
 
     public async Task<Cart> GetCartByCustomerIdAsync(int customerId)
     {
-        return await _cartsRepo.GetCartByCustomerId(customerId) ?? throw new CartNotFoundException();
+        return await _cartsRepo.GetCartByCustomerId(customerId)
+            ?? throw new CartNotFoundException();
     }
 
     public async Task AddItemToCartAsync(AddItemToCartRequest req)
@@ -71,7 +75,7 @@ public class CartService
                 RequestedItem = req.Item,
                 CartId = cart.Id,
                 UnitPrice = unitPrice,
-                Subtotal = subtotal
+                Subtotal = subtotal,
             }
         );
         await UpdateCartPricingAsync(cart.Id);
@@ -88,27 +92,38 @@ public class CartService
     {
         var cart = await GetCartByCustomerIdAsync(customerId);
         IEnumerable<CartItem> cartItems = await _cartItemsRepo.GetCartItemsByCartId(cart.Id);
-        IEnumerable<CartItemResponse> cartItemsResponse = cartItems.Select(item => new CartItemResponse { ItemId = item.ItemId, Quantity = item.Quantity, UnitPrice = item.UnitPrice, Subtotal = item.Subtotal });
-        var cartPricing = await _cartPricingsRepo.GetCartPricingByCartId(cart.Id) ?? throw new Exception("Cart pricing matching cart id was not found");
+        IEnumerable<CartItemResponse> cartItemsResponse = cartItems.Select(
+            item => new CartItemResponse
+            {
+                ItemId = item.ItemId,
+                Quantity = item.Quantity,
+                UnitPrice = item.UnitPrice,
+                Subtotal = item.Subtotal,
+            }
+        );
+        var cartPricing =
+            await _cartPricingsRepo.GetCartPricingByCartId(cart.Id)
+            ?? throw new Exception("Cart pricing matching cart id was not found");
         return new CartResponse
         {
             CartItems = cartItemsResponse,
             Subtotal = cartPricing.Subtotal,
             Fees = cartPricing.Fees,
             DeliveryFee = cartPricing.DeliveryFee,
-            Total = cartPricing.Total
+            Total = cartPricing.Total,
         };
     }
 
-    public async Task<bool> SetCartAsUsedAsync(int id)
-    {
-        return await _cartsRepo.SetCartAsUsed(id);
-    }
-
-    public async Task UpdateCartItemQuantityAsync(int customerId, int itemId, UpdateCartItemQuantityRequest req)
+    public async Task UpdateCartItemQuantityAsync(
+        int customerId,
+        int itemId,
+        UpdateCartItemQuantityRequest req
+    )
     {
         var cart = await GetCartByCustomerIdAsync(customerId);
-        var (_, subtotal) = await _pricingService.CalculateItemPriceAsync(new RequestedItem { ItemId = itemId, Quantity = req.Quantity });
+        var (_, subtotal) = await _pricingService.CalculateItemPriceAsync(
+            new RequestedItem { ItemId = itemId, Quantity = req.Quantity }
+        );
         await _cartItemsRepo.UpdateCartItemQuantity(cart.Id, itemId, req.Quantity, subtotal);
         await UpdateCartPricingAsync(cart.Id);
     }
@@ -117,5 +132,16 @@ public class CartService
     {
         var cartPricing = await _pricingService.CalculateCartPricing(cartId);
         await _cartPricingsRepo.UpdateCartPricing(cartPricing);
+    }
+
+    private async Task RemoveAllItemsFromCartAsync(int cartId)
+    {
+        await _cartItemsRepo.DeleteAllCartItemsByCartId(cartId);
+    }
+
+    public async Task ResetCartAsync(int cartId)
+    {
+        await RemoveAllItemsFromCartAsync(cartId);
+        await UpdateCartPricingAsync(cartId);
     }
 }

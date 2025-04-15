@@ -1,7 +1,7 @@
 using Dapper;
 using Npgsql;
 
-public class ItemsRepository : BaseRepo, IItemsRepository
+public class ItemsRepository : BaseRepository, IItemsRepository
 {
     public ItemsRepository(string connectionString) : base(connectionString)
     {

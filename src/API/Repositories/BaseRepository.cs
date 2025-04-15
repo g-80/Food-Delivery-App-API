@@ -1,7 +1,8 @@
-public abstract class BaseRepo
+public abstract class BaseRepository
 {
     protected readonly string _connectionString;
-    public BaseRepo(string connectionString)
+
+    public BaseRepository(string connectionString)
     {
         _connectionString = connectionString;
     }
