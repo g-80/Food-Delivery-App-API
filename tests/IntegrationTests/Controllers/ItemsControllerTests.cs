@@ -10,7 +10,6 @@ public class ItemsControllerTests
     public ItemsControllerTests(WebApplicationFactoryFixture factory)
     {
         _factory = factory;
-        _factory.SetFoodPlaceAccessToken();
     }
 
     [Fact]
@@ -23,8 +22,9 @@ public class ItemsControllerTests
             FoodPlaceId = 1,
             Price = 450,
             IsAvailable = true,
-            Description = "Delicious veggie pizza"
+            Description = "Delicious veggie pizza",
         };
+        await _factory.LoginAsAFoodPlace();
 
         // Act
         var response = await _factory.Client.PostAsJsonAsync(HttpHelper.Urls.Items, itemReq);
@@ -57,8 +57,9 @@ public class ItemsControllerTests
             Name = name,
             FoodPlaceId = 1,
             Price = 450,
-            IsAvailable = true
+            IsAvailable = true,
         };
+        await _factory.LoginAsAFoodPlace();
 
         // Act
         var response = await _factory.Client.PostAsJsonAsync(HttpHelper.Urls.Items, itemReq);
@@ -80,8 +81,9 @@ public class ItemsControllerTests
             Name = "Amazing Pizza",
             FoodPlaceId = 1,
             Price = price,
-            IsAvailable = true
+            IsAvailable = true,
         };
+        await _factory.LoginAsAFoodPlace();
 
         // Act
         var response = await _factory.Client.PostAsJsonAsync(HttpHelper.Urls.Items, itemReq);
@@ -128,7 +130,15 @@ public class ItemsControllerTests
         var testItem = TestData.Items.defaults[0];
         int id = TestData.Items.assignedIds[0];
         testItem.IsAvailable.Should().BeTrue();
-        UpdateItemRequest itemReq = new UpdateItemRequest { Name = testItem.Name, Id = id, IsAvailable = false, Price = testItem.Price };
+        UpdateItemRequest itemReq = new UpdateItemRequest
+        {
+            Name = testItem.Name,
+            Id = id,
+            IsAvailable = false,
+            Price = testItem.Price,
+        };
+        await _factory.LoginAsAFoodPlace();
+
         // Act
         var response = await _factory.Client.PutAsJsonAsync(HttpHelper.Urls.Items + id, itemReq);
         // Assert
@@ -146,7 +156,15 @@ public class ItemsControllerTests
         int id = TestData.Items.assignedIds[0];
         testItem.IsAvailable.Should().BeTrue();
         testItem.Price.Should().Be(750);
-        UpdateItemRequest itemReq = new UpdateItemRequest { Name = testItem.Name, Id = id, IsAvailable = testItem.IsAvailable, Price = -750 };
+        UpdateItemRequest itemReq = new UpdateItemRequest
+        {
+            Name = testItem.Name,
+            Id = id,
+            IsAvailable = testItem.IsAvailable,
+            Price = -750,
+        };
+        await _factory.LoginAsAFoodPlace();
+
         // Act
         var response = await _factory.Client.PutAsJsonAsync(HttpHelper.Urls.Items + id, itemReq);
         var errors = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
@@ -154,5 +172,4 @@ public class ItemsControllerTests
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
         errors!.Errors.Should().ContainKey("Price");
     }
-
 }

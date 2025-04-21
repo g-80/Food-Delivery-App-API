@@ -11,7 +11,6 @@ public class FoodPlacesControllerTests
     public FoodPlacesControllerTests(WebApplicationFactoryFixture factory)
     {
         _factory = factory;
-        _factory.SetCustomerAccessToken();
     }
 
     [Fact]
@@ -49,6 +48,8 @@ public class FoodPlacesControllerTests
     [InlineData("0")]
     public async Task OnGetFoodPlace_WithInvalidId_ShouldReturnNotFound(string invalidId)
     {
+        // Arrange
+
         // Act
         var response = await _factory.Client.GetAsync(HttpHelper.Urls.GetFoodPlace + invalidId);
 

@@ -3,33 +3,34 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using FluentAssertions;
-using Microsoft.AspNetCore.Mvc.Routing;
 
 [Collection("Controllers collection")]
 public class AuthControllerTests
 {
     private readonly WebApplicationFactoryFixture _factory;
     private readonly IUsersRepository _usersRepo;
+    private readonly ICartsRepository _cartsRepo;
     private readonly IRefreshTokensRepository _refreshTokensRepo;
 
     public AuthControllerTests(WebApplicationFactoryFixture factory)
     {
         _factory = factory;
         _usersRepo = _factory.GetServiceFromContainer<IUsersRepository>();
+        _cartsRepo = _factory.GetServiceFromContainer<ICartsRepository>();
         _refreshTokensRepo = _factory.GetServiceFromContainer<IRefreshTokensRepository>();
     }
 
     [Fact]
-    public async Task SignUp_WithValidData_CreatesUserInRepository()
+    public async Task SignUp_WithValidData_CreatesUserAndCart()
     {
         // Arrange
-        var signUpRequest = new CreateUserRequest
+        var signUpRequest = new UserCreateRequest
         {
             FirstName = "John",
             Surname = "Doe",
             PhoneNumber = "07111222333",
             Password = "SecurePassword!",
-            UserType = UserTypes.customer
+            UserType = UserTypes.customer,
         };
 
         // Act
@@ -46,19 +47,22 @@ public class AuthControllerTests
         user.PhoneNumber.Should().Be(signUpRequest.PhoneNumber);
         user.UserType.Should().Be(signUpRequest.UserType);
         user.Password.Should().NotBeNullOrEmpty();
+
+        var cart = await _cartsRepo.GetCartByCustomerId(user.Id);
+        cart.Should().NotBeNull();
     }
 
     [Fact]
     public async Task SignUp_WithExistingPhoneNumber_ReturnsBadRequest()
     {
         // Arrange
-        var signUpRequest = new CreateUserRequest
+        var signUpRequest = new UserCreateRequest
         {
             FirstName = "Jane",
             Surname = "Smith",
             PhoneNumber = "07333666999",
             Password = "SecurePassword!",
-            UserType = UserTypes.customer
+            UserType = UserTypes.customer,
         };
 
         // Act
@@ -78,20 +82,20 @@ public class AuthControllerTests
     public async Task Login_WithValidCredentials_CreatesRefreshToken()
     {
         // Arrange
-        var signUpRequest = new CreateUserRequest
+        var signUpRequest = new UserCreateRequest
         {
             FirstName = "Test",
             Surname = "User",
             PhoneNumber = "07555666333",
             Password = "SecurePassword!",
-            UserType = UserTypes.customer
+            UserType = UserTypes.customer,
         };
         await _factory.Client.PostAsJsonAsync(HttpHelper.Urls.SignUp, signUpRequest);
 
         var loginRequest = new UserLoginRequest
         {
             PhoneNumber = signUpRequest.PhoneNumber,
-            Password = signUpRequest.Password
+            Password = signUpRequest.Password,
         };
 
         // Act
@@ -103,7 +107,6 @@ public class AuthControllerTests
         tokenResponse.Should().NotBeNull();
         tokenResponse!.AccessToken.Should().NotBeNullOrEmpty();
         tokenResponse.RefreshToken.Should().NotBeNullOrEmpty();
-
 
         var user = await _usersRepo.GetUserByPhoneNumber(loginRequest.PhoneNumber);
         user.Should().NotBeNull();
@@ -118,8 +121,11 @@ public class AuthControllerTests
     public async Task Login_WithInvalidPassword_ReturnsBadRequest()
     {
         // Arrange
-        var loginRequest = TestData.Users.loginRequests[1];
-        loginRequest.Password = "WrongPassword123!";
+        var loginRequest = new UserLoginRequest
+        {
+            PhoneNumber = TestData.Users.loginRequests[1].PhoneNumber,
+            Password = "WrongPassword123!",
+        };
 
         // Act
         var response = await _factory.Client.PostAsJsonAsync(HttpHelper.Urls.Login, loginRequest);
@@ -132,41 +138,47 @@ public class AuthControllerTests
     public async Task RefreshToken_WithValidToken_ReplacesRefreshToken()
     {
         // Arrange
-        var signUpRequest = new CreateUserRequest
+        var signUpRequest = new UserCreateRequest
         {
             FirstName = "Refresh",
             Surname = "The Token",
             PhoneNumber = "07111444777",
             Password = "SecurePassword!",
-            UserType = UserTypes.customer
+            UserType = UserTypes.customer,
         };
         await _factory.Client.PostAsJsonAsync(HttpHelper.Urls.SignUp, signUpRequest);
 
         var loginRequest = new UserLoginRequest
         {
             PhoneNumber = signUpRequest.PhoneNumber,
-            Password = signUpRequest.Password
+            Password = signUpRequest.Password,
         };
 
-        var loginResponse = await _factory.Client.PostAsJsonAsync(HttpHelper.Urls.Login, loginRequest);
+        var loginResponse = await _factory.Client.PostAsJsonAsync(
+            HttpHelper.Urls.Login,
+            loginRequest
+        );
         var tokenResponse = await loginResponse.Content.ReadFromJsonAsync<TokenResponse>();
 
         var handler = new JwtSecurityTokenHandler();
         var jwtToken = handler.ReadJwtToken(tokenResponse!.AccessToken);
-        var userId = int.Parse(jwtToken.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
+        var userId = int.Parse(
+            jwtToken.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value
+        );
 
         string originalRefreshToken = tokenResponse!.RefreshToken;
 
         var refreshRequest = new RefreshTokenRequest
         {
             UserId = userId,
-            RefreshToken = originalRefreshToken
+            RefreshToken = originalRefreshToken,
         };
 
-        _factory.SetCustomerAccessToken();
-
         // Act
-        var response = await _factory.Client.PostAsJsonAsync(HttpHelper.Urls.RefreshToken, refreshRequest);
+        var response = await _factory.Client.PostAsJsonAsync(
+            HttpHelper.Urls.RefreshToken,
+            refreshRequest
+        );
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -187,41 +199,47 @@ public class AuthControllerTests
     public async Task RefreshToken_WithInvalidToken_ReturnsUnauthorized()
     {
         // Arrange
-        var signUpRequest = new CreateUserRequest
+        var signUpRequest = new UserCreateRequest
         {
             FirstName = "Invalid",
             Surname = "Refresh",
             PhoneNumber = "07888555222",
             Password = "SecurePassword!",
-            UserType = UserTypes.customer
+            UserType = UserTypes.customer,
         };
         await _factory.Client.PostAsJsonAsync(HttpHelper.Urls.SignUp, signUpRequest);
 
         var loginRequest = new UserLoginRequest
         {
             PhoneNumber = signUpRequest.PhoneNumber,
-            Password = signUpRequest.Password
+            Password = signUpRequest.Password,
         };
 
-        var loginResponse = await _factory.Client.PostAsJsonAsync(HttpHelper.Urls.Login, loginRequest);
+        var loginResponse = await _factory.Client.PostAsJsonAsync(
+            HttpHelper.Urls.Login,
+            loginRequest
+        );
         var tokenResponse = await loginResponse.Content.ReadFromJsonAsync<TokenResponse>();
 
         var handler = new JwtSecurityTokenHandler();
         var jwtToken = handler.ReadJwtToken(tokenResponse!.AccessToken);
-        var userId = int.Parse(jwtToken.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
+        var userId = int.Parse(
+            jwtToken.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value
+        );
 
         string originalRefreshToken = tokenResponse!.RefreshToken;
 
         var refreshRequest = new RefreshTokenRequest
         {
             UserId = userId,
-            RefreshToken = "invalid-refresh-token"
+            RefreshToken = "invalid-refresh-token",
         };
 
-        _factory.SetCustomerAccessToken();
-
         // Act
-        var response = await _factory.Client.PostAsJsonAsync(HttpHelper.Urls.RefreshToken, refreshRequest);
+        var response = await _factory.Client.PostAsJsonAsync(
+            HttpHelper.Urls.RefreshToken,
+            refreshRequest
+        );
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);

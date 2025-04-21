@@ -15,13 +15,13 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("signup")]
-    public async Task<IActionResult> SignUpUser([FromBody] CreateUserRequest req)
+    public async Task<IActionResult> SignUpUser([FromBody] UserCreateRequest req)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var user = await _authService.RegisterUserAsync(req);
-        if (user == null)
+        var userId = await _authService.SignUpUserAsync(req);
+        if (userId == null)
             return BadRequest("User already exists");
 
         return Ok();

@@ -72,15 +72,6 @@ internal static class TestData
             .Zip(Items.defaults, (itemReq, itemData) => itemData.Price * itemReq.Quantity)
             .ToList();
 
-        public static CreateCartDTO CreateCartDTO(int customerId = 1)
-        {
-            return new CreateCartDTO
-            {
-                CustomerId = customerId,
-                Expiry = DateTime.UtcNow.AddMinutes(5),
-            };
-        }
-
         public static IEnumerable<CreateCartItemDTO> CreateCartItemDTOs(int cartId = 1)
         {
             return itemRequests.Select(
@@ -117,11 +108,13 @@ internal static class TestData
         {
             return new CreateOrderDTO { CustomerId = customerId, TotalPrice = Carts.prices.Sum() };
         }
+
+        public static readonly List<int> assignedIds = new();
     }
 
     public static class Users
     {
-        public static List<CreateUserRequest> createUserRequests = new()
+        public static List<UserCreateRequest> createUserRequests = new()
         {
             new()
             {
@@ -148,5 +141,7 @@ internal static class TestData
                 Password = req.Password,
             })
             .ToList();
+
+        public static readonly List<int> assignedIds = new();
     }
 }

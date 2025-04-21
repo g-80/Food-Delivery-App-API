@@ -15,7 +15,6 @@ public class CartsControllerTests
         _cartItemsRepo = _factory.GetServiceFromContainer<ICartItemsRepository>();
         _cartPricingsRepo = _factory.GetServiceFromContainer<ICartPricingsRepository>();
         _cartService = _factory.GetServiceFromContainer<ICartService>();
-        _factory.SetCustomerAccessToken();
     }
 
     [Fact]
@@ -23,12 +22,17 @@ public class CartsControllerTests
     {
         // Arrange
         int cartId = TestData.Carts.assignedCartId;
-        await _cartService.RemoveItemFromCartAsync(1, TestData.Carts.itemRequests[0].ItemId);
+        int customerId = TestData.Users.assignedIds[0];
+        // remove item from cart to add it again
+        await _cartService.RemoveItemFromCartAsync(
+            customerId,
+            TestData.Carts.itemRequests[0].ItemId
+        );
         int countBefore = (await _cartItemsRepo.GetCartItemsByCartId(cartId)).Count();
         int priceBefore = (await _cartPricingsRepo.GetCartPricingByCartId(cartId))!.Total;
         var request = new AddItemToCartRequest
         {
-            CustomerId = 1,
+            CustomerId = customerId,
             Item = TestData.Carts.itemRequests[0],
         };
 
@@ -81,6 +85,8 @@ public class CartsControllerTests
     [Fact]
     public async Task GetCart_ShouldReturnInternalServerError_WhenCartDoesNotExist()
     {
+        // Arrange
+
         // Act
         var response = await _factory.Client.GetAsync(HttpHelper.Urls.Carts + "9999999");
 

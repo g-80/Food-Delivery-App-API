@@ -1,4 +1,2 @@
 [CollectionDefinition("Controllers collection")]
-public class ControllersCollection : ICollectionFixture<WebApplicationFactoryFixture>
-{
-}
+public class ControllersCollection : ICollectionFixture<WebApplicationFactoryFixture> { }

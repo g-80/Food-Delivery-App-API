@@ -32,40 +32,41 @@ public class TestDataSeeder
 
     public async Task SeedFoodPlaces()
     {
-        await Task.WhenAll(
-            TestData.FoodPlaces.foodPlacesFixtures.Select(async foodPlace =>
-                TestData.FoodPlaces.assignedIds.Add(
-                    await _foodPlacesRepo.CreateFoodPlace(foodPlace)
-                )
-            )
-        );
+        foreach (var foodPlace in TestData.FoodPlaces.foodPlacesFixtures)
+        {
+            int foodPlaceId = await _foodPlacesRepo.CreateFoodPlace(foodPlace);
+            TestData.FoodPlaces.assignedIds.Add(foodPlaceId);
+        }
     }
 
     public async Task SeedItems()
     {
-        await Task.WhenAll(
-            TestData.Items.defaults.Select(async item =>
-                TestData.Items.assignedIds.Add(await _itemsRepo.CreateItem(item))
-            )
-        );
+        foreach (var item in TestData.Items.defaults)
+        {
+            int itemId = await _itemsRepo.CreateItem(item);
+            TestData.Items.assignedIds.Add(itemId);
+        }
     }
 
-    public async Task SeedCartData()
+    public async Task SeedCartItems()
     {
-        TestData.Carts.assignedCartId = await _cartsRepo.CreateCart(TestData.Carts.CreateCartDTO());
+        TestData.Carts.assignedCartId = (
+            await _cartsRepo.GetCartByCustomerId(TestData.Users.assignedIds[0])
+        )!.Id;
         await Task.WhenAll(
             TestData
                 .Carts.CreateCartItemDTOs(TestData.Carts.assignedCartId)
                 .Select(dto => _cartItemsRepo.CreateCartItem(dto))
         );
-        await _cartPricingsRepo.CreateCartPricing(
+        await _cartPricingsRepo.UpdateCartPricing(
             TestData.Carts.CreateCartPricingDTO(TestData.Carts.assignedCartId)
         );
     }
 
-    public async Task<int> SeedOrderAndOrderItems()
+    public async Task SeedOrderAndOrderItems()
     {
         var orderId = await _ordersRepo.CreateOrder(TestData.Orders.CreateOrderDTO());
+        TestData.Orders.assignedIds.Add(orderId);
         await Task.WhenAll(
             TestData.Carts.itemRequests.Select(
                 (item, i) =>
@@ -79,16 +80,14 @@ public class TestDataSeeder
                     )
             )
         );
-        return orderId;
     }
 
     public async Task SeedUsers()
     {
-        await Task.WhenAll(
-            TestData.Users.createUserRequests.Select(async req =>
-            {
-                int id = (await _authService.RegisterUserAsync(req))!.Id!.Value;
-            })
-        );
+        foreach (var req in TestData.Users.createUserRequests)
+        {
+            int userId = (int)await _authService.SignUpUserAsync(req);
+            TestData.Users.assignedIds.Add(userId);
+        }
     }
 }

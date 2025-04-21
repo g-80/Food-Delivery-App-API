@@ -18,14 +18,13 @@ public class OrdersControllerTests
         _orderItemsRepo = _factory.GetServiceFromContainer<IOrdersItemsRepository>();
         _cartItemsRepo = _factory.GetServiceFromContainer<ICartItemsRepository>();
         _seeder = _factory.GetServiceFromContainer<TestDataSeeder>();
-        _factory.SetCustomerAccessToken();
     }
 
     [Fact]
     public async Task CreateOrder_WithValidRequest_ShouldCreateOrderAndItems()
     {
         // Arrange
-
+        await _factory.LoginAsACustomerAsync();
         // Act
         var response = await _factory.Client.PostAsync(HttpHelper.Urls.Orders, null);
 
@@ -57,7 +56,8 @@ public class OrdersControllerTests
     public async Task CancelOrder_WithValidId_ShouldCancelOrder()
     {
         // Arrange
-        var orderId = await _seeder.SeedOrderAndOrderItems();
+        await _seeder.SeedOrderAndOrderItems();
+        var orderId = TestData.Orders.assignedIds[0];
 
         // Act
         var response = await _factory.Client.PatchAsync(
@@ -77,7 +77,8 @@ public class OrdersControllerTests
     public async Task GetOrder_WithValidId_ShouldReturnOrder()
     {
         // Arrange
-        var orderId = await _seeder.SeedOrderAndOrderItems();
+        await _seeder.SeedOrderAndOrderItems();
+        var orderId = TestData.Orders.assignedIds[0];
 
         // Act
         var response = await _factory.Client.GetAsync(HttpHelper.Urls.Orders + orderId);

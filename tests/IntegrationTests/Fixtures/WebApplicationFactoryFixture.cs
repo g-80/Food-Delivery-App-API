@@ -31,46 +31,37 @@ public class WebApplicationFactoryFixture : IAsyncLifetime
             builder.ConfigureTestServices(services =>
             {
                 services.RemoveAll(typeof(IFoodPlacesRepository));
-                services.AddSingleton<IFoodPlacesRepository>(_ => new FoodPlacesRepository(
+                services.AddScoped<IFoodPlacesRepository>(_ => new FoodPlacesRepository(
                     _connectionString,
                     _distance
                 ));
                 services.RemoveAll(typeof(IItemsRepository));
-                services.AddSingleton<IItemsRepository>(_ => new ItemsRepository(
-                    _connectionString
-                ));
+                services.AddScoped<IItemsRepository>(_ => new ItemsRepository(_connectionString));
                 services.RemoveAll(typeof(ICartsRepository));
-                services.AddSingleton<ICartsRepository>(_ => new CartsRepository(
-                    _connectionString
-                ));
+                services.AddScoped<ICartsRepository>(_ => new CartsRepository(_connectionString));
                 services.RemoveAll(typeof(ICartItemsRepository));
-                services.AddSingleton<ICartItemsRepository>(_ => new CartItemsRepository(
+                services.AddScoped<ICartItemsRepository>(_ => new CartItemsRepository(
                     _connectionString
                 ));
                 services.RemoveAll(typeof(ICartPricingsRepository));
-                services.AddSingleton<ICartPricingsRepository>(_ => new CartPricingsRepository(
+                services.AddScoped<ICartPricingsRepository>(_ => new CartPricingsRepository(
                     _connectionString
                 ));
                 services.RemoveAll(typeof(IOrdersRepository));
-                services.AddSingleton<IOrdersRepository>(_ => new OrdersRepository(
-                    _connectionString
-                ));
+                services.AddScoped<IOrdersRepository>(_ => new OrdersRepository(_connectionString));
                 services.RemoveAll(typeof(IOrdersItemsRepository));
-                services.AddSingleton<IOrdersItemsRepository>(_ => new OrdersItemsRepository(
+                services.AddScoped<IOrdersItemsRepository>(_ => new OrdersItemsRepository(
                     _connectionString
                 ));
                 services.RemoveAll(typeof(IUsersRepository));
-                services.AddTransient<IUsersRepository>(_ => new UsersRepository(
-                    _connectionString
-                ));
+                services.AddScoped<IUsersRepository>(_ => new UsersRepository(_connectionString));
                 services.RemoveAll(typeof(IRefreshTokensRepository));
-                services.AddTransient<IRefreshTokensRepository>(_ => new RefreshTokensRepository(
+                services.AddScoped<IRefreshTokensRepository>(_ => new RefreshTokensRepository(
                     _connectionString
                 ));
                 services.RemoveAll(typeof(UnitOfWork));
                 services.AddTransient(_ => new UnitOfWork(_connectionString));
-                services.AddSingleton<TestDataSeeder>();
-                services.AddSingleton<LoginHelper>();
+                services.AddTransient<TestDataSeeder>();
             });
         });
         Client = _factory.CreateClient();
@@ -85,11 +76,9 @@ public class WebApplicationFactoryFixture : IAsyncLifetime
         await seeder.SeedFoodPlaces();
         await seeder.SeedItems();
         await seeder.SeedUsers();
-        await seeder.SeedCartData();
+        await seeder.SeedCartItems();
 
-        var loginHelper = GetServiceFromContainer<LoginHelper>();
-        await loginHelper.LoginAsACustomer();
-        await loginHelper.LoginAsAFoodPlace();
+        await LoginAsACustomerAsync();
     }
 
     public async Task DisposeAsync()
@@ -116,23 +105,23 @@ public class WebApplicationFactoryFixture : IAsyncLifetime
         return service;
     }
 
-    public void SetCustomerAccessToken()
+    public async Task LoginAsACustomerAsync()
     {
-        var loginHelper = GetServiceFromContainer<LoginHelper>();
+        var authService = GetServiceFromContainer<AuthService>();
+        var token =
+            await authService.LoginAsync(TestData.Users.loginRequests[0])
+            ?? throw new Exception("User does not exist");
         Client.DefaultRequestHeaders.Authorization =
-            new System.Net.Http.Headers.AuthenticationHeaderValue(
-                "Bearer",
-                loginHelper._customerAccessToken
-            );
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.AccessToken);
     }
 
-    public void SetFoodPlaceAccessToken()
+    public async Task LoginAsAFoodPlace()
     {
-        var loginHelper = GetServiceFromContainer<LoginHelper>();
+        var authService = GetServiceFromContainer<AuthService>();
+        var token =
+            await authService.LoginAsync(TestData.Users.loginRequests[1])
+            ?? throw new Exception("User does not exist");
         Client.DefaultRequestHeaders.Authorization =
-            new System.Net.Http.Headers.AuthenticationHeaderValue(
-                "Bearer",
-                loginHelper._foodPlaceAccessToken
-            );
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.AccessToken);
     }
 }

@@ -10,7 +10,11 @@ public class TokenService
     IRefreshTokensRepository _refreshTokensRepo;
     IConfiguration _configuration;
 
-    public TokenService(IUsersRepository usersRepository, IRefreshTokensRepository refreshTokensRepository, IConfiguration configuration)
+    public TokenService(
+        IUsersRepository usersRepository,
+        IRefreshTokensRepository refreshTokensRepository,
+        IConfiguration configuration
+    )
     {
         _refreshTokensRepo = refreshTokensRepository;
         _usersRepo = usersRepository;
@@ -22,10 +26,9 @@ public class TokenService
         return new TokenResponse
         {
             AccessToken = CreateAccessToken(user),
-            RefreshToken = await GenerateAndSaveRefreshTokenAsync(user.Id)
+            RefreshToken = await GenerateAndSaveRefreshTokenAsync(user.Id),
         };
     }
-
 
     public async Task<TokenResponse?> RefreshTokenAsync(RefreshTokenRequest request)
     {
@@ -33,22 +36,22 @@ public class TokenService
         if (user == null)
             return null;
 
-        await DeleteRefreshTokenAsync(user.Id);
         return await CreateTokenResponse(user);
     }
 
     private async Task<User?> ValidateRefreshTokenAsync(int userId, string refreshToken)
     {
-
-        // confirm the userId
         var user = await _usersRepo.GetUserById(userId);
         if (user == null)
         {
             return null;
         }
         var savedToken = await _refreshTokensRepo.GetRefreshTokenByUserId(userId);
-        if (savedToken == null || savedToken.Token != refreshToken
-            || savedToken.ExpiresAt <= DateTime.UtcNow)
+        if (
+            savedToken == null
+            || savedToken.Token != refreshToken
+            || savedToken.ExpiresAt <= DateTime.UtcNow
+        )
         {
             return null;
         }
@@ -66,13 +69,16 @@ public class TokenService
 
     private async Task<string> GenerateAndSaveRefreshTokenAsync(int userId)
     {
+        await DeleteRefreshTokenAsync(userId);
+
         var refreshToken = GenerateRefreshToken();
         var dto = new RefreshTokenDTO
         {
             UserId = userId,
             Token = refreshToken,
-            ExpiresAt = DateTime.UtcNow.AddDays(7)
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
         };
+
         await _refreshTokensRepo.CreateRefreshToken(dto);
         return refreshToken;
     }
@@ -87,11 +93,12 @@ public class TokenService
         var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Role, user.UserType.ToString())
+            new Claim(ClaimTypes.Role, user.UserType.ToString()),
         };
 
         var key = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(_configuration.GetValue<string>("Jwt:Key")!));
+            Encoding.UTF8.GetBytes(_configuration.GetValue<string>("Jwt:Key")!)
+        );
 
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 

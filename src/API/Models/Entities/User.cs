@@ -1,10 +1,10 @@
 public class User
 {
-    public int Id { get; set; }
-    public string FirstName { get; set; } = string.Empty;
-    public string Surname { get; set; } = string.Empty;
-    public string PhoneNumber { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-    public UserTypes UserType { get; set; }
-    public DateTime CreatedAt { get; set; }
+    public required int Id { get; init; }
+    public required string FirstName { get; init; }
+    public required string Surname { get; init; }
+    public required string PhoneNumber { get; init; }
+    public required string Password { get; init; }
+    public required UserTypes UserType { get; init; }
+    public required DateTime CreatedAt { get; init; }
 }

@@ -4,14 +4,20 @@ public class AuthService
 {
     IUsersRepository _usersRepo;
     TokenService _tokenService;
+    ICartService _cartService;
 
-    public AuthService(IUsersRepository usersRepository, TokenService tokenService)
+    public AuthService(
+        IUsersRepository usersRepository,
+        TokenService tokenService,
+        ICartService cartService
+    )
     {
         _usersRepo = usersRepository;
         _tokenService = tokenService;
+        _cartService = cartService;
     }
 
-    public async Task<UserDTO?> RegisterUserAsync(CreateUserRequest request)
+    public async Task<int?> SignUpUserAsync(UserCreateRequest request)
     {
         if ((await _usersRepo.GetUserByPhoneNumber(request.PhoneNumber)) != null)
         {
@@ -27,9 +33,10 @@ public class AuthService
         userDTO.Password = hashedPassword;
         userDTO.UserType = request.UserType;
 
-        userDTO.Id = await _usersRepo.CreateUser(userDTO);
+        var userId = await _usersRepo.CreateUser(userDTO);
+        await _cartService.CreateCartAsync(userId);
 
-        return userDTO;
+        return userId;
     }
 
     public async Task<TokenResponse?> LoginAsync(UserLoginRequest request)
@@ -39,8 +46,10 @@ public class AuthService
         {
             return null;
         }
-        if (new PasswordHasher<User>().VerifyHashedPassword(user, user.Password, request.Password)
-            == PasswordVerificationResult.Failed)
+        if (
+            new PasswordHasher<User>().VerifyHashedPassword(user, user.Password, request.Password)
+            == PasswordVerificationResult.Failed
+        )
         {
             return null;
         }

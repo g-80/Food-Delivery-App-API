@@ -4,59 +4,37 @@ public class CartService : ICartService
     private readonly ICartItemsRepository _cartItemsRepo;
     private readonly ICartPricingsRepository _cartPricingsRepo;
     private readonly IPricingService _pricingService;
-    private readonly UnitOfWork _unitOfWork;
 
     public CartService(
         ICartsRepository cartsRepository,
         ICartItemsRepository cartItemsRepository,
         ICartPricingsRepository cartPricingsRepository,
-        IPricingService pricingService,
-        UnitOfWork unitOfWork
+        IPricingService pricingService
     )
     {
         _cartsRepo = cartsRepository;
         _cartItemsRepo = cartItemsRepository;
         _cartPricingsRepo = cartPricingsRepository;
         _pricingService = pricingService;
-        _unitOfWork = unitOfWork;
     }
 
     public async Task<int> CreateCartAsync(int customerId)
     {
-        using (_unitOfWork)
-        {
-            try
+        int cartId = await _cartsRepo.CreateCart(
+            new CreateCartDTO { CustomerId = customerId, Expiry = DateTime.UtcNow.AddMinutes(5) }
+        );
+        await _cartPricingsRepo.CreateCartPricing(
+            new CartPricingDTO
             {
-                _unitOfWork.BeginTransaction();
-                int cartId = await _cartsRepo.CreateCart(
-                    new CreateCartDTO
-                    {
-                        CustomerId = customerId,
-                        Expiry = DateTime.UtcNow.AddMinutes(5),
-                    },
-                    _unitOfWork.Transaction
-                );
-                await _cartPricingsRepo.CreateCartPricing(
-                    new CartPricingDTO
-                    {
-                        CartId = cartId,
-                        Subtotal = 0,
-                        Fees = 0,
-                        DeliveryFee = 0,
-                        Total = 0,
-                    },
-                    _unitOfWork.Transaction
-                );
+                CartId = cartId,
+                Subtotal = 0,
+                Fees = 0,
+                DeliveryFee = 0,
+                Total = 0,
+            }
+        );
 
-                _unitOfWork.Commit();
-                return cartId;
-            }
-            catch
-            {
-                _unitOfWork.Rollback();
-                throw;
-            }
-        }
+        return cartId;
     }
 
     public async Task<Cart> GetCartByCustomerIdAsync(int customerId)

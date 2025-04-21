@@ -13,32 +13,27 @@ builder.Services.AddControllers();
 string connectionString =
     builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new Exception("Could not read the database ConnectionString");
-builder.Services.AddSingleton<IFoodPlacesRepository>(_ => new FoodPlacesRepository(
+builder.Services.AddSingleton(connectionString);
+builder.Services.AddScoped<IFoodPlacesRepository>(_ => new FoodPlacesRepository(
     connectionString,
     builder.Configuration.GetValue<int>("SearchDistance:Default")
 ));
-builder.Services.AddSingleton<IFoodPlacesService, FoodPlacesService>();
-builder.Services.AddSingleton<IItemsRepository>(_ => new ItemsRepository(connectionString));
-builder.Services.AddSingleton<ICartsRepository>(_ => new CartsRepository(connectionString));
-builder.Services.AddSingleton<ICartItemsRepository>(_ => new CartItemsRepository(connectionString));
-builder.Services.AddSingleton<ICartPricingsRepository>(_ => new CartPricingsRepository(
-    connectionString
-));
-builder.Services.AddSingleton<IPricingService, PricingService>();
-builder.Services.AddSingleton<ICartService, CartService>();
-builder.Services.AddSingleton<IOrdersRepository>(_ => new OrdersRepository(connectionString));
-builder.Services.AddSingleton<IOrdersItemsRepository>(_ => new OrdersItemsRepository(
-    connectionString
-));
-builder.Services.AddSingleton<IOrderService, OrderService>();
-builder.Services.AddSingleton<IUsersRepository>(_ => new UsersRepository(connectionString));
-builder.Services.AddSingleton<IRefreshTokensRepository>(_ => new RefreshTokensRepository(
-    connectionString
-));
-builder.Services.AddSingleton<AuthService>();
-builder.Services.AddSingleton<TokenService>();
-builder.Services.AddTransient(_ => new UnitOfWork(connectionString));
-builder.Services.AddSingleton(_ => new DatabaseInitializer(connectionString));
+builder.Services.AddScoped<IFoodPlacesService, FoodPlacesService>();
+builder.Services.AddScoped<IItemsRepository>();
+builder.Services.AddScoped<ICartsRepository>();
+builder.Services.AddScoped<ICartItemsRepository>();
+builder.Services.AddScoped<ICartPricingsRepository>();
+builder.Services.AddScoped<IPricingService, PricingService>();
+builder.Services.AddTransient<ICartService, CartService>();
+builder.Services.AddScoped<IOrdersRepository>();
+builder.Services.AddScoped<IOrdersItemsRepository>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IUsersRepository>();
+builder.Services.AddScoped<IRefreshTokensRepository>();
+builder.Services.AddTransient<AuthService>();
+builder.Services.AddScoped<TokenService>();
+builder.Services.AddTransient<UnitOfWork>();
+builder.Services.AddTransient<DatabaseInitializer>();
 
 builder
     .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
