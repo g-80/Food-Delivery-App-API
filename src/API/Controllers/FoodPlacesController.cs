@@ -15,33 +15,33 @@ public class FoodPlacesController : ControllerBase
 
     [HttpGet("nearby")]
     public async Task<IActionResult> GetFoodPlacesWithinDistance(
-        [FromQuery] NearbyFoodPlacesRequest query
+        [FromQuery] FoodPlacesNearbyRequest query
     )
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
-        IEnumerable<FoodPlace> result = await _foodPlacesService.GetFoodPlacesWithinDistance(query);
+        IEnumerable<FoodPlaceResponse> result =
+            await _foodPlacesService.GetFoodPlacesWithinDistance(query);
         return Ok(result);
     }
 
     [HttpGet("search")]
     public async Task<IActionResult> SearchFoodPlacesWithinDistance(
-        [FromQuery] SearchFoodPlacesRequest query
+        [FromQuery] FoodPlacesSearchRequest query
     )
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        IEnumerable<FoodPlace> result = await _foodPlacesService.SearchFoodPlacesWithinDistance(
-            query
-        );
+        IEnumerable<FoodPlaceResponse> result =
+            await _foodPlacesService.SearchFoodPlacesWithinDistance(query);
         return Ok(result);
     }
 
     [HttpGet("{id:int:min(1)}")]
     public async Task<IActionResult> GetFoodPlace([FromRoute] int id)
     {
-        FoodPlace? result = await _foodPlacesService.GetFoodPlaceAsync(id);
+        FoodPlaceResponse? result = await _foodPlacesService.GetFoodPlaceAsync(id);
         if (result == null)
         {
             return NotFound();

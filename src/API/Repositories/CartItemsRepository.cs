@@ -41,7 +41,7 @@ public class CartItemsRepository : BaseRepository, ICartItemsRepository
         ";
         using (var connection = new NpgsqlConnection(_connectionString))
         {
-            return (await connection.QueryAsync<CartItem>(sql, parameters)).ToList();
+            return await connection.QueryAsync<CartItem>(sql, parameters);
         }
         ;
     }
@@ -85,7 +85,7 @@ public class CartItemsRepository : BaseRepository, ICartItemsRepository
         ;
     }
 
-    public async Task DeleteAllCartItemsByCartId(int cartId, NpgsqlTransaction? transaction = null)
+    public async Task DeleteAllCartItemsByCartId(int cartId)
     {
         var parameters = new { cartId };
         const string sql =
@@ -93,14 +93,32 @@ public class CartItemsRepository : BaseRepository, ICartItemsRepository
             DELETE FROM cart_items
             WHERE cart_id = @cartId
         ";
-        if (transaction != null)
-        {
-            await transaction.Connection!.ExecuteAsync(sql, parameters, transaction);
-        }
         using (var connection = new NpgsqlConnection(_connectionString))
         {
             await connection.ExecuteAsync(sql, parameters);
         }
         ;
+    }
+
+    public async Task UpdateCartItemPrice(int cartId, int itemId, int newUnitPrice, int newSubtotal)
+    {
+        var parameters = new
+        {
+            cartId,
+            itemId,
+            newUnitPrice,
+            newSubtotal,
+        };
+
+        const string sql =
+            @"
+            UPDATE cart_items
+            SET unit_price = @newUnitPrice, subtotal = @newSubtotal
+            WHERE cart_id = @cartId AND item_id = @itemId
+        ";
+        using (var connection = new NpgsqlConnection(_connectionString))
+        {
+            await connection.ExecuteAsync(sql, parameters);
+        }
     }
 }

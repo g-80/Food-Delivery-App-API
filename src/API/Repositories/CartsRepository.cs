@@ -38,7 +38,7 @@ public class CartsRepository : BaseRepository, ICartsRepository
         ;
     }
 
-    public async Task<int> CreateCart(CreateCartDTO dto, NpgsqlTransaction? transaction = null)
+    public async Task<int> CreateCart(CreateCartDTO dto)
     {
         var parameters = new { dto.CustomerId, dto.Expiry };
         const string sql =
@@ -48,17 +48,26 @@ public class CartsRepository : BaseRepository, ICartsRepository
             (@CustomerId, @Expiry)
             RETURNING id
         ";
-        if (transaction != null)
-        {
-            return await transaction.Connection!.ExecuteScalarAsync<int>(
-                sql,
-                parameters,
-                transaction
-            );
-        }
         using (var connection = new NpgsqlConnection(_connectionString))
         {
             return await connection.ExecuteScalarAsync<int>(sql, parameters);
+        }
+        ;
+    }
+
+    public async Task UpdateCartExpiry(int cartId, DateTime newExpiry)
+    {
+        var parameters = new { Id = cartId, Expiry = newExpiry };
+
+        const string sql =
+            @"
+            UPDATE carts
+            SET expires_at = @Expiry
+            WHERE id = @Id
+        ";
+        using (var connection = new NpgsqlConnection(_connectionString))
+        {
+            await connection.ExecuteAsync(sql, parameters);
         }
         ;
     }

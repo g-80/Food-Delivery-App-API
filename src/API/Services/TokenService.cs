@@ -30,7 +30,7 @@ public class TokenService
         };
     }
 
-    public async Task<TokenResponse?> RefreshTokenAsync(RefreshTokenRequest request)
+    public async Task<TokenResponse?> RefreshTokenAsync(TokenRefreshRequest request)
     {
         var user = await ValidateRefreshTokenAsync(request.UserId, request.RefreshToken);
         if (user == null)

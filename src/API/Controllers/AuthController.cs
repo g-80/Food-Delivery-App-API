@@ -35,14 +35,14 @@ public class AuthController : ControllerBase
 
         var token = await _authService.LoginAsync(req);
         if (token == null)
-            return BadRequest("Invalid password");
+            return BadRequest("Invalid phone number or password");
 
         return Ok(token);
     }
 
     [Authorize]
     [HttpPost("refresh-token")]
-    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest req)
+    public async Task<IActionResult> RefreshToken([FromBody] TokenRefreshRequest req)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);

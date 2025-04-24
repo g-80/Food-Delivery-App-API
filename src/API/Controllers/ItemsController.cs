@@ -6,19 +6,20 @@ using Microsoft.AspNetCore.Mvc;
 [Authorize]
 public class ItemsController : ControllerBase
 {
-    private readonly IItemsRepository _itemsRepo;
-    public ItemsController(IItemsRepository repo)
+    private readonly IItemService _itemService;
+
+    public ItemsController(IItemService service)
     {
-        _itemsRepo = repo;
+        _itemService = service;
     }
 
     [Authorize(Roles = nameof(UserTypes.food_place))]
     [HttpPost]
-    public async Task<IActionResult> CreateItem([FromBody] CreateItemRequest itemRequest)
+    public async Task<IActionResult> CreateItem([FromBody] ItemCreateRequest itemRequest)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
-        int result = await _itemsRepo.CreateItem(itemRequest);
+        int result = await _itemService.CreateItem(itemRequest);
         return Ok(result);
     }
 
@@ -27,7 +28,7 @@ public class ItemsController : ControllerBase
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
-        Item? result = await _itemsRepo.GetItemById(id);
+        ItemResponse? result = await _itemService.GetItemAsync(id);
         if (result == null)
         {
             return NotFound();
@@ -37,13 +38,16 @@ public class ItemsController : ControllerBase
 
     [Authorize(Roles = nameof(UserTypes.food_place))]
     [HttpPut("{id:int:min(1)}")]
-    public async Task<IActionResult> UpdateItem([FromRoute] int id, [FromBody] UpdateItemRequest itemRequest)
+    public async Task<IActionResult> UpdateItem(
+        [FromRoute] int id,
+        [FromBody] ItemUpdateRequest itemRequest
+    )
     {
         if (itemRequest.Id != id)
             return BadRequest("ID in URL must match ID in request body");
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
-        bool success = await _itemsRepo.UpdateItem(itemRequest);
+        bool success = await _itemService.UpdateItemAsync(itemRequest);
         if (!success)
             return NotFound("Item not found");
         return Ok();

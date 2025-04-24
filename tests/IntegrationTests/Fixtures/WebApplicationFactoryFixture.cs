@@ -59,8 +59,6 @@ public class WebApplicationFactoryFixture : IAsyncLifetime
                 services.AddScoped<IRefreshTokensRepository>(_ => new RefreshTokensRepository(
                     _connectionString
                 ));
-                services.RemoveAll(typeof(UnitOfWork));
-                services.AddTransient(_ => new UnitOfWork(_connectionString));
                 services.AddTransient<TestDataSeeder>();
             });
         });

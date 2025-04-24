@@ -12,7 +12,7 @@ public class FoodPlacesRepository : BaseRepository, IFoodPlacesRepository
     }
 
     public async Task<IEnumerable<FoodPlace>> GetFoodPlacesWithinDistance(
-        NearbyFoodPlacesRequest query
+        FoodPlacesNearbyRequest query
     )
     {
         var parameters = new
@@ -42,7 +42,7 @@ public class FoodPlacesRepository : BaseRepository, IFoodPlacesRepository
     }
 
     public async Task<IEnumerable<FoodPlace>> SearchFoodPlacesWithinDistance(
-        SearchFoodPlacesRequest query
+        FoodPlacesSearchRequest query
     )
     {
         var parameters = new

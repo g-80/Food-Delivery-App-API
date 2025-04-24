@@ -1,7 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 
-public class NearbyFoodPlacesRequest
+public class FoodPlacesSearchRequest
 {
+    private string _searchQuery = string.Empty;
+
     [Required]
     [Range(49.0, 59.0, ErrorMessage = "Invalid location")]
     public double Latitude { get; set; }
@@ -9,4 +11,12 @@ public class NearbyFoodPlacesRequest
     [Required]
     [Range(-8.0, 2.0, ErrorMessage = "Invalid location")]
     public double Longitude { get; set; }
+
+    [Required]
+    [StringLength(50, MinimumLength = 3)]
+    public required string SearchQuery
+    {
+        get => _searchQuery;
+        set => _searchQuery = value.Trim();
+    }
 }

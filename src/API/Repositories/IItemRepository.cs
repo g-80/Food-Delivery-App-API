@@ -1,6 +1,6 @@
 public interface IItemsRepository
 {
-    Task<int> CreateItem(CreateItemRequest itemReq);
+    Task<int> CreateItem(ItemCreateRequest itemReq);
     Task<Item?> GetItemById(int id);
-    Task<bool> UpdateItem(UpdateItemRequest itemReq);
+    Task<bool> UpdateItem(ItemUpdateRequest itemReq);
 }

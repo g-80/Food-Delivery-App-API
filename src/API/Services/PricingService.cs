@@ -1,3 +1,5 @@
+using Npgsql;
+
 public class PricingService : IPricingService
 {
     private readonly IItemsRepository _itemsRepository;

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,45 +15,52 @@ public class CartsController : ControllerBase
     }
 
     [HttpPost("items")]
-    public async Task<IActionResult> AddCartItem([FromBody] AddItemToCartRequest req)
+    public async Task<IActionResult> AddCartItem([FromBody] CartAddItemRequest req)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        await _cartService.AddItemToCartAsync(req);
+        var customerId = GetCustomerIdFromJwt();
+        await _cartService.AddItemToCartAsync(customerId, req);
         return Ok();
     }
 
     [HttpDelete("items/{id:int:min(1)}")]
     public async Task<IActionResult> RemoveCartItem([FromRoute] int id)
     {
-        var tempCustomerId = 1;
-        await _cartService.RemoveItemFromCartAsync(tempCustomerId, id);
+        var customerId = GetCustomerIdFromJwt();
+        await _cartService.RemoveItemFromCartAsync(customerId, id);
         return Ok();
     }
 
     [HttpPatch("items/{id:int:min(1)}")]
     public async Task<IActionResult> UpdateCartItemQuantity(
         [FromRoute] int id,
-        [FromBody] UpdateCartItemQuantityRequest req
+        [FromBody] CartUpdateItemQuantityRequest req
     )
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var tempCustomerId = 1;
-        await _cartService.UpdateCartItemQuantityAsync(tempCustomerId, id, req);
+        var customerId = GetCustomerIdFromJwt();
+        await _cartService.UpdateCartItemQuantityAsync(customerId, id, req);
         return Ok();
     }
 
-    [HttpGet("{customerId:int:min(1)}")]
-    public async Task<IActionResult> GetCart([FromRoute] int customerId)
+    [HttpGet]
+    public async Task<IActionResult> GetCart()
     {
+        var customerId = GetCustomerIdFromJwt();
         CartResponse? result = await _cartService.GetCartDetailsAsync(customerId);
         if (result == null)
         {
             return NotFound();
         }
         return Ok(result);
+    }
+
+    private int GetCustomerIdFromJwt()
+    {
+        return int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
     }
 }

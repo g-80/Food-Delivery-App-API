@@ -168,7 +168,7 @@ public class AuthControllerTests
 
         string originalRefreshToken = tokenResponse!.RefreshToken;
 
-        var refreshRequest = new RefreshTokenRequest
+        var refreshRequest = new TokenRefreshRequest
         {
             UserId = userId,
             RefreshToken = originalRefreshToken,
@@ -229,7 +229,7 @@ public class AuthControllerTests
 
         string originalRefreshToken = tokenResponse!.RefreshToken;
 
-        var refreshRequest = new RefreshTokenRequest
+        var refreshRequest = new TokenRefreshRequest
         {
             UserId = userId,
             RefreshToken = "invalid-refresh-token",

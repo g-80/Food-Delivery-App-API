@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-public class UpdateCartItemQuantityRequest
+public class CartUpdateItemQuantityRequest
 {
     [Required]
     [Range(1, 20)]

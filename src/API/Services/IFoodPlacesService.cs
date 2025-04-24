@@ -1,7 +1,9 @@
 public interface IFoodPlacesService
 {
     Task<int> CreateFoodPlaceAsync(FoodPlaceCreateRequest req);
-    Task<FoodPlace?> GetFoodPlaceAsync(int id);
-    Task<IEnumerable<FoodPlace>> GetFoodPlacesWithinDistance(NearbyFoodPlacesRequest query);
-    Task<IEnumerable<FoodPlace>> SearchFoodPlacesWithinDistance(SearchFoodPlacesRequest query);
+    Task<FoodPlaceResponse?> GetFoodPlaceAsync(int id);
+    Task<IEnumerable<FoodPlaceResponse>> GetFoodPlacesWithinDistance(FoodPlacesNearbyRequest query);
+    Task<IEnumerable<FoodPlaceResponse>> SearchFoodPlacesWithinDistance(
+        FoodPlacesSearchRequest query
+    );
 }

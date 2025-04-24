@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,8 +18,8 @@ public class OrdersController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateOrder()
     {
-        var tempCustomerId = 1;
-        var orderId = await _orderService.CreateOrderAsync(tempCustomerId);
+        var customerId = GetCustomerIdFromJwt();
+        var orderId = await _orderService.CreateOrderAsync(customerId);
 
         return Ok(new OrderResponse { OrderId = orderId });
     }
@@ -43,6 +44,11 @@ public class OrdersController : ControllerBase
         if (order == null)
             return NotFound();
 
-        return Ok(new OrderResponse { OrderId = order.Id, TotalPrice = order.TotalPrice });
+        return Ok(order);
+    }
+
+    private int GetCustomerIdFromJwt()
+    {
+        return int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
     }
 }

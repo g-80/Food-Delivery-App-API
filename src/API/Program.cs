@@ -19,20 +19,20 @@ builder.Services.AddScoped<IFoodPlacesRepository>(_ => new FoodPlacesRepository(
     builder.Configuration.GetValue<int>("SearchDistance:Default")
 ));
 builder.Services.AddScoped<IFoodPlacesService, FoodPlacesService>();
-builder.Services.AddScoped<IItemsRepository>();
-builder.Services.AddScoped<ICartsRepository>();
-builder.Services.AddScoped<ICartItemsRepository>();
-builder.Services.AddScoped<ICartPricingsRepository>();
+builder.Services.AddScoped<IItemsRepository, ItemsRepository>();
+builder.Services.AddScoped<IItemService, ItemService>();
+builder.Services.AddScoped<ICartsRepository, CartsRepository>();
+builder.Services.AddScoped<ICartItemsRepository, CartItemsRepository>();
+builder.Services.AddScoped<ICartPricingsRepository, CartPricingsRepository>();
 builder.Services.AddScoped<IPricingService, PricingService>();
 builder.Services.AddTransient<ICartService, CartService>();
-builder.Services.AddScoped<IOrdersRepository>();
-builder.Services.AddScoped<IOrdersItemsRepository>();
+builder.Services.AddScoped<IOrdersRepository, OrdersRepository>();
+builder.Services.AddScoped<IOrdersItemsRepository, OrdersItemsRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
-builder.Services.AddScoped<IUsersRepository>();
-builder.Services.AddScoped<IRefreshTokensRepository>();
+builder.Services.AddScoped<IUsersRepository, UsersRepository>();
+builder.Services.AddScoped<IRefreshTokensRepository, RefreshTokensRepository>();
 builder.Services.AddTransient<AuthService>();
 builder.Services.AddScoped<TokenService>();
-builder.Services.AddTransient<UnitOfWork>();
 builder.Services.AddTransient<DatabaseInitializer>();
 
 builder

@@ -35,9 +35,9 @@ internal static class TestData
 
     public static class Items
     {
-        public static readonly List<CreateItemRequest> defaults = new()
+        public static readonly List<ItemCreateRequest> defaults = new()
         {
-            new CreateItemRequest
+            new ItemCreateRequest
             {
                 Name = "Amazing Pizza",
                 Description = "Very nice pizza",
@@ -45,7 +45,7 @@ internal static class TestData
                 IsAvailable = true,
                 Price = 750,
             },
-            new CreateItemRequest
+            new ItemCreateRequest
             {
                 Name = "Vegetarian Pizza",
                 Description = "Very nice vegetarian pizza",

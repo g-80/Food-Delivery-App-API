@@ -16,7 +16,7 @@ public class ItemsControllerTests
     public async Task OnCreateItem_ShouldCreateItemAndReturnId()
     {
         // Arrange
-        var itemReq = new CreateItemRequest
+        var itemReq = new ItemCreateRequest
         {
             Name = "Vegetarian Pizza",
             FoodPlaceId = 1,
@@ -52,7 +52,7 @@ public class ItemsControllerTests
     public async Task OnCreateItem_WithInvalidName_ShouldReturnBadRequest(string name)
     {
         // Arrange
-        var itemReq = new CreateItemRequest
+        var itemReq = new ItemCreateRequest
         {
             Name = name,
             FoodPlaceId = 1,
@@ -76,7 +76,7 @@ public class ItemsControllerTests
     public async Task OnCreateItem_WithInvalidPrice_ShouldReturnBadRequest(int price)
     {
         // Arrange
-        var itemReq = new CreateItemRequest
+        var itemReq = new ItemCreateRequest
         {
             Name = "Amazing Pizza",
             FoodPlaceId = 1,
@@ -109,7 +109,6 @@ public class ItemsControllerTests
         var testItem = TestData.Items.defaults[0];
         result!.Name.Should().Be(testItem.Name);
         result.Price.Should().Be(testItem.Price);
-        result.IsAvailable.Should().Be(testItem.IsAvailable);
     }
 
     [Fact]
@@ -130,7 +129,7 @@ public class ItemsControllerTests
         var testItem = TestData.Items.defaults[0];
         int id = TestData.Items.assignedIds[0];
         testItem.IsAvailable.Should().BeTrue();
-        UpdateItemRequest itemReq = new UpdateItemRequest
+        ItemUpdateRequest itemReq = new ItemUpdateRequest
         {
             Name = testItem.Name,
             Id = id,
@@ -156,7 +155,7 @@ public class ItemsControllerTests
         int id = TestData.Items.assignedIds[0];
         testItem.IsAvailable.Should().BeTrue();
         testItem.Price.Should().Be(750);
-        UpdateItemRequest itemReq = new UpdateItemRequest
+        ItemUpdateRequest itemReq = new ItemUpdateRequest
         {
             Name = testItem.Name,
             Id = id,

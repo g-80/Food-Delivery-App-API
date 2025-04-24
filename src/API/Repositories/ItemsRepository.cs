@@ -3,14 +3,14 @@ using Npgsql;
 
 public class ItemsRepository : BaseRepository, IItemsRepository
 {
-    public ItemsRepository(string connectionString) : base(connectionString)
-    {
-    }
+    public ItemsRepository(string connectionString)
+        : base(connectionString) { }
 
     public async Task<Item?> GetItemById(int id)
     {
         var parameters = new { Id = id };
-        const string sql = @"
+        const string sql =
+            @"
             SELECT *
             FROM food_places_items
             WHERE id = @Id
@@ -22,10 +22,18 @@ public class ItemsRepository : BaseRepository, IItemsRepository
         ;
     }
 
-    public async Task<int> CreateItem(CreateItemRequest itemReq)
+    public async Task<int> CreateItem(ItemCreateRequest itemReq)
     {
-        var parameters = new { itemReq.Name, itemReq.Description, itemReq.FoodPlaceId, itemReq.Price, itemReq.IsAvailable };
-        const string sql = @"
+        var parameters = new
+        {
+            itemReq.Name,
+            itemReq.Description,
+            itemReq.FoodPlaceId,
+            itemReq.Price,
+            itemReq.IsAvailable,
+        };
+        const string sql =
+            @"
             INSERT INTO food_places_items(name, description, food_place_id, price, is_available)
             VALUES
             (@Name, @Description, @FoodPlaceId, @Price, @isAvailable)
@@ -38,11 +46,19 @@ public class ItemsRepository : BaseRepository, IItemsRepository
         ;
     }
 
-    public async Task<bool> UpdateItem(UpdateItemRequest itemReq)
+    public async Task<bool> UpdateItem(ItemUpdateRequest itemReq)
     {
-        var parameters = new { itemReq.Id, itemReq.Name, itemReq.Description, itemReq.IsAvailable, itemReq.Price };
+        var parameters = new
+        {
+            itemReq.Id,
+            itemReq.Name,
+            itemReq.Description,
+            itemReq.IsAvailable,
+            itemReq.Price,
+        };
 
-        const string sql = @"
+        const string sql =
+            @"
             UPDATE food_places_items
             SET name = @Name, description = @Description, price = @price, is_available = @IsAvailable
             WHERE id = @Id

@@ -22,7 +22,7 @@ public class CartPricingsRepository : BaseRepository, ICartPricingsRepository
         ;
     }
 
-    public async Task CreateCartPricing(CartPricingDTO dto, NpgsqlTransaction? transaction = null)
+    public async Task CreateCartPricing(CartPricingDTO dto)
     {
         var parameters = new
         {
@@ -38,10 +38,6 @@ public class CartPricingsRepository : BaseRepository, ICartPricingsRepository
             VALUES
             (@CartId, @Subtotal, @Fees, @DeliveryFee, @Total)
         ";
-        if (transaction != null)
-        {
-            await transaction.Connection!.ExecuteScalarAsync<int>(sql, parameters, transaction);
-        }
         using (var connection = new NpgsqlConnection(_connectionString))
         {
             await connection.ExecuteScalarAsync<int>(sql, parameters);

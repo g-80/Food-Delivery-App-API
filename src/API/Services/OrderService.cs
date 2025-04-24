@@ -1,70 +1,59 @@
+using System.Transactions;
+
 public class OrderService : IOrderService
 {
     private readonly IOrdersRepository _ordersRepo;
     private readonly IOrdersItemsRepository _ordersItemsRepo;
     private readonly ICartService _cartService;
-    private readonly UnitOfWork _unitOfWork;
 
     public OrderService(
         IOrdersRepository ordersRepo,
         IOrdersItemsRepository ordersItemsRepository,
-        ICartService cartService,
-        UnitOfWork unitOfWork
+        ICartService cartService
     )
     {
         _ordersRepo = ordersRepo;
         _ordersItemsRepo = ordersItemsRepository;
         _cartService = cartService;
-        _unitOfWork = unitOfWork;
     }
 
     public async Task<int> CreateOrderAsync(int customerId)
     {
-        Cart? cart = await _cartService.GetCartByCustomerIdAsync(customerId);
-        if (cart == null)
-            throw new CartNotFoundException();
+        Cart cart =
+            await _cartService.GetCartByCustomerIdAsync(customerId)
+            ?? throw new CartNotFoundException();
 
-        var cartDetails = await _cartService.GetCartDetailsAsync(customerId);
-        if (!cartDetails.CartItems.Any())
+        var cartItems = await _cartService.GetCartItemsByCartId(cart.Id);
+        if (!cartItems.Any())
             throw new InvalidOperationException("Cart is empty");
 
-        using (_unitOfWork)
+        var cartPricing =
+            await _cartService.GetCartPricingByCartId(cart.Id)
+            ?? throw new Exception($"Cart pricing for cart id = {cart.Id} was not found");
+
+        using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
+        int orderId = await _ordersRepo.CreateOrder(
+            new CreateOrderDTO { CustomerId = customerId, TotalPrice = cartPricing.Total }
+        );
+
+        foreach (var item in cartItems)
         {
-            try
-            {
-                _unitOfWork.BeginTransaction();
-
-                int orderId = await _ordersRepo.CreateOrder(
-                    new CreateOrderDTO { CustomerId = customerId, TotalPrice = cartDetails.Total },
-                    _unitOfWork.Transaction
-                );
-
-                foreach (var item in cartDetails.CartItems)
+            await _ordersItemsRepo.CreateOrderItem(
+                new CreateOrderItemDTO
                 {
-                    await _ordersItemsRepo.CreateOrderItem(
-                        new CreateOrderItemDTO
-                        {
-                            RequestedItem = new RequestedItem
-                            {
-                                ItemId = item.ItemId,
-                                Quantity = item.Quantity,
-                            },
-                            OrderId = orderId,
-                            Subtotal = item.Subtotal,
-                        },
-                        _unitOfWork.Transaction
-                    );
+                    RequestedItem = new RequestedItem
+                    {
+                        ItemId = item.ItemId,
+                        Quantity = item.Quantity,
+                    },
+                    OrderId = orderId,
+                    Subtotal = item.Subtotal,
                 }
-                await _cartService.ResetCartAsync(cart.Id);
-                _unitOfWork.Commit();
-                return orderId;
-            }
-            catch
-            {
-                _unitOfWork.Rollback();
-                throw;
-            }
+            );
         }
+        await _cartService.ResetCartAsync(cart.Id);
+        scope.Complete();
+        return orderId;
     }
 
     public async Task<bool> CancelOrderAsync(int orderId)
@@ -72,8 +61,10 @@ public class OrderService : IOrderService
         return await _ordersRepo.CancelOrder(orderId);
     }
 
-    public async Task<Order?> GetOrderByIdAsync(int orderId)
+    public async Task<OrderResponse?> GetOrderByIdAsync(int orderId)
     {
-        return await _ordersRepo.GetOrderById(orderId);
+        var order =
+            await _ordersRepo.GetOrderById(orderId) ?? throw new Exception("Order was not found");
+        return new OrderResponse { OrderId = order.Id, TotalPrice = order.TotalPrice };
     }
 }

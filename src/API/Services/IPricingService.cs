@@ -1,3 +1,5 @@
+using Npgsql;
+
 public interface IPricingService
 {
     Task<CartPricingDTO> CalculateCartPricing(int cartId);
