@@ -6,15 +6,19 @@ public class OrderService : IOrderService
     private readonly IOrdersItemsRepository _ordersItemsRepo;
     private readonly ICartService _cartService;
 
+    private readonly OrderAssignmentService _orderAssignmentService;
+
     public OrderService(
         IOrdersRepository ordersRepo,
         IOrdersItemsRepository ordersItemsRepository,
-        ICartService cartService
+        ICartService cartService,
+        OrderAssignmentService orderAssignmentService
     )
     {
         _ordersRepo = ordersRepo;
         _ordersItemsRepo = ordersItemsRepository;
         _cartService = cartService;
+        _orderAssignmentService = orderAssignmentService;
     }
 
     public async Task<int> CreateOrderAsync(int customerId)
@@ -31,29 +35,50 @@ public class OrderService : IOrderService
             await _cartService.GetCartPricingByCartId(cart.Id)
             ?? throw new Exception($"Cart pricing for cart id = {cart.Id} was not found");
 
-        using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
-        int orderId = await _ordersRepo.CreateOrder(
-            new CreateOrderDTO { CustomerId = customerId, TotalPrice = cartPricing.Total }
-        );
-
-        foreach (var item in cartItems)
+        int orderId;
+        using (var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
         {
-            await _ordersItemsRepo.CreateOrderItem(
-                new CreateOrderItemDTO
+            orderId = await _ordersRepo.CreateOrder(
+                new CreateOrderDTO
                 {
-                    RequestedItem = new RequestedItem
-                    {
-                        ItemId = item.ItemId,
-                        Quantity = item.Quantity,
-                    },
-                    OrderId = orderId,
-                    Subtotal = item.Subtotal,
+                    CustomerId = customerId,
+                    TotalPrice = cartPricing.Total,
+                    FoodPlaceId = 81,
+                    DeliveryAddressId = 2,
                 }
             );
+
+            foreach (var item in cartItems)
+            {
+                await _ordersItemsRepo.CreateOrderItem(
+                    new CreateOrderItemDTO
+                    {
+                        RequestedItem = new RequestedItem
+                        {
+                            ItemId = item.ItemId,
+                            Quantity = item.Quantity,
+                        },
+                        OrderId = orderId,
+                        Subtotal = item.Subtotal,
+                    }
+                );
+            }
+
+            await _cartService.ResetCartAsync(cart.Id);
+            scope.Complete();
         }
-        await _cartService.ResetCartAsync(cart.Id);
-        scope.Complete();
+
+        await AssignOrderToDriver(orderId);
         return orderId;
+    }
+
+    private async Task AssignOrderToDriver(int orderId)
+    {
+        Console.WriteLine("------------------");
+        Console.WriteLine($"OrderId: {orderId}");
+        Console.WriteLine("------------------");
+
+        await _orderAssignmentService.AssignOrderToDriver(orderId);
     }
 
     public async Task<bool> CancelOrderAsync(int orderId)

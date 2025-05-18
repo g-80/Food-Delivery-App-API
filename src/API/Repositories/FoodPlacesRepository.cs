@@ -1,12 +1,13 @@
 using Dapper;
+using Microsoft.Extensions.Options;
 using Npgsql;
 
 public class FoodPlacesRepository : BaseRepository, IFoodPlacesRepository
 {
     private readonly int _distanceMeters = 3000;
 
-    public FoodPlacesRepository(string connectionString, int distance)
-        : base(connectionString)
+    public FoodPlacesRepository(IOptions<DatabaseOptions> options, int distance)
+        : base(options.Value.ConnectionString)
     {
         _distanceMeters = distance;
     }
@@ -84,7 +85,8 @@ public class FoodPlacesRepository : BaseRepository, IFoodPlacesRepository
                 description,
                 category,
                 latitude,
-                longitude
+                longitude,
+                address_id
             FROM food_places
             WHERE id = @Id
             ";

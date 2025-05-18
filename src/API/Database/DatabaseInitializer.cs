@@ -3,30 +3,27 @@ using DbUp;
 public class DatabaseInitializer
 {
     private readonly string _connectionString;
-    private readonly bool _includeSeedData;
 
-    public DatabaseInitializer(string connectionString, bool includeSeedData = true)
+    public DatabaseInitializer(string connectionString)
     {
         _connectionString = connectionString;
-        _includeSeedData = includeSeedData;
     }
 
-    public void InitializeDatabase()
+    public void InitializeDatabase(bool includeSeedData = true)
     {
         EnsureDatabase.For.PostgresqlDatabase(_connectionString);
-        var builder = DeployChanges.To
-            .PostgresqlDatabase(_connectionString)
-            .LogToConsole();
+        var builder = DeployChanges.To.PostgresqlDatabase(_connectionString).LogToConsole();
         builder = builder.WithScriptsEmbeddedInAssembly(
             typeof(DatabaseInitializer).Assembly,
-            script => script.Contains("Database.Scripts.Migrations"));
+            script => script.Contains("Database.Scripts.Migrations")
+        );
 
-        // Only include seed scripts if specified
-        if (_includeSeedData)
+        if (includeSeedData)
         {
             builder = builder.WithScriptsEmbeddedInAssembly(
                 typeof(DatabaseInitializer).Assembly,
-                script => script.Contains("Database.Scripts.Seeds"));
+                script => script.Contains("Database.Scripts.Seeds")
+            );
         }
 
         var upgrader = builder.Build();

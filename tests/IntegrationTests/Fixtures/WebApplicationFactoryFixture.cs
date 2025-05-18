@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Npgsql;
 
 public class WebApplicationFactoryFixture : IAsyncLifetime
@@ -30,50 +31,29 @@ public class WebApplicationFactoryFixture : IAsyncLifetime
             );
             builder.ConfigureTestServices(services =>
             {
+                services.Configure<DatabaseOptions>(options =>
+                    options.ConnectionString = _connectionString
+                );
                 services.RemoveAll(typeof(IFoodPlacesRepository));
-                services.AddScoped<IFoodPlacesRepository>(_ => new FoodPlacesRepository(
-                    _connectionString,
+                services.AddScoped<IFoodPlacesRepository>(sp => new FoodPlacesRepository(
+                    sp.GetRequiredService<IOptions<DatabaseOptions>>(),
                     _distance
-                ));
-                services.RemoveAll(typeof(IItemsRepository));
-                services.AddScoped<IItemsRepository>(_ => new ItemsRepository(_connectionString));
-                services.RemoveAll(typeof(ICartsRepository));
-                services.AddScoped<ICartsRepository>(_ => new CartsRepository(_connectionString));
-                services.RemoveAll(typeof(ICartItemsRepository));
-                services.AddScoped<ICartItemsRepository>(_ => new CartItemsRepository(
-                    _connectionString
-                ));
-                services.RemoveAll(typeof(ICartPricingsRepository));
-                services.AddScoped<ICartPricingsRepository>(_ => new CartPricingsRepository(
-                    _connectionString
-                ));
-                services.RemoveAll(typeof(IOrdersRepository));
-                services.AddScoped<IOrdersRepository>(_ => new OrdersRepository(_connectionString));
-                services.RemoveAll(typeof(IOrdersItemsRepository));
-                services.AddScoped<IOrdersItemsRepository>(_ => new OrdersItemsRepository(
-                    _connectionString
-                ));
-                services.RemoveAll(typeof(IUsersRepository));
-                services.AddScoped<IUsersRepository>(_ => new UsersRepository(_connectionString));
-                services.RemoveAll(typeof(IRefreshTokensRepository));
-                services.AddScoped<IRefreshTokensRepository>(_ => new RefreshTokensRepository(
-                    _connectionString
                 ));
                 services.AddTransient<TestDataSeeder>();
             });
         });
         Client = _factory.CreateClient();
-        _dbInitializer = new DatabaseInitializer(_connectionString, false);
+        _dbInitializer = new DatabaseInitializer(_connectionString);
     }
 
     public async Task InitializeAsync()
     {
-        _dbInitializer.InitializeDatabase();
+        _dbInitializer.InitializeDatabase(false);
 
         var seeder = GetServiceFromContainer<TestDataSeeder>();
+        await seeder.SeedUsers();
         await seeder.SeedFoodPlaces();
         await seeder.SeedItems();
-        await seeder.SeedUsers();
         await seeder.SeedCartItems();
 
         await LoginAsACustomerAsync();

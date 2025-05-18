@@ -1,16 +1,17 @@
 using Dapper;
+using Microsoft.Extensions.Options;
 using Npgsql;
 
 public class UsersRepository : BaseRepository, IUsersRepository
 {
-    public UsersRepository(string connectionString) : base(connectionString)
-    {
-    }
+    public UsersRepository(IOptions<DatabaseOptions> options)
+        : base(options.Value.ConnectionString) { }
 
     public async Task<User?> GetUserById(int id)
     {
         var parameters = new { Id = id };
-        const string sql = @"
+        const string sql =
+            @"
             SELECT *
             FROM users
             WHERE id = @Id
@@ -25,7 +26,8 @@ public class UsersRepository : BaseRepository, IUsersRepository
     public async Task<User?> GetUserByPhoneNumber(string phoneNumber)
     {
         var parameters = new { number = phoneNumber };
-        const string sql = @"
+        const string sql =
+            @"
             SELECT *
             FROM users
             WHERE phone_number = @number
@@ -39,8 +41,16 @@ public class UsersRepository : BaseRepository, IUsersRepository
 
     public async Task<int> CreateUser(UserDTO dto)
     {
-        var parameters = new { dto.FirstName, dto.Surname, dto.PhoneNumber, dto.Password, UserType = dto.UserType.ToString() };
-        const string sql = @"
+        var parameters = new
+        {
+            dto.FirstName,
+            dto.Surname,
+            dto.PhoneNumber,
+            dto.Password,
+            UserType = dto.UserType.ToString(),
+        };
+        const string sql =
+            @"
             INSERT INTO users(first_name, surname, phone_number, password, user_type)
             VALUES
             (@FirstName, @Surname, @PhoneNumber, @Password, @UserType)
@@ -57,7 +67,8 @@ public class UsersRepository : BaseRepository, IUsersRepository
     {
         var parameters = dto;
 
-        const string sql = @"
+        const string sql =
+            @"
             UPDATE users
             SET first_name = @FirstName, surname = @Surname, phone_number = @PhoneNumber, password = @Password
             WHERE id = @Id
@@ -69,5 +80,4 @@ public class UsersRepository : BaseRepository, IUsersRepository
         }
         ;
     }
-
 }

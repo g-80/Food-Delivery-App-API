@@ -36,9 +36,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE CONSTRAINT TRIGGER cart_items_update_trigger
+CREATE TRIGGER cart_items_update_trigger
 AFTER INSERT OR UPDATE OR DELETE
 ON cart_items
-DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 EXECUTE FUNCTION update_cart_timestamp();

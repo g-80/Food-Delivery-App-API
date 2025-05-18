@@ -1,16 +1,17 @@
 using Dapper;
+using Microsoft.Extensions.Options;
 using Npgsql;
 
 public class RefreshTokensRepository : BaseRepository, IRefreshTokensRepository
 {
-    public RefreshTokensRepository(string connectionString) : base(connectionString)
-    {
-    }
+    public RefreshTokensRepository(IOptions<DatabaseOptions> options)
+        : base(options.Value.ConnectionString) { }
 
     public async Task<RefreshToken?> GetRefreshTokenByUserId(int userId)
     {
         var parameters = new { userId };
-        const string sql = @"
+        const string sql =
+            @"
             SELECT *
             FROM refresh_tokens
             WHERE user_id = @userId
@@ -25,7 +26,8 @@ public class RefreshTokensRepository : BaseRepository, IRefreshTokensRepository
     public async Task CreateRefreshToken(RefreshTokenDTO dto)
     {
         var parameters = dto;
-        const string sql = @"
+        const string sql =
+            @"
             INSERT INTO refresh_tokens
             VALUES
             (@UserId, @Token, @ExpiresAt)
@@ -40,7 +42,8 @@ public class RefreshTokensRepository : BaseRepository, IRefreshTokensRepository
     public async Task DeleteRefreshToken(int userId)
     {
         var parameters = new { userId };
-        const string sql = @"
+        const string sql =
+            @"
             DELETE FROM refresh_tokens
             WHERE user_id = @userId
             ";

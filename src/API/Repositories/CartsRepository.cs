@@ -1,10 +1,11 @@
 using Dapper;
+using Microsoft.Extensions.Options;
 using Npgsql;
 
 public class CartsRepository : BaseRepository, ICartsRepository
 {
-    public CartsRepository(string connectionString)
-        : base(connectionString) { }
+    public CartsRepository(IOptions<DatabaseOptions> options)
+        : base(options.Value.ConnectionString) { }
 
     public async Task<Cart?> GetCartById(int id)
     {

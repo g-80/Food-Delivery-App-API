@@ -19,6 +19,8 @@ public class UserCreateRequest
     [StringLength(30, MinimumLength = 8)]
     public required string Password { get; init; }
 
+    public required AddressCreateRequest Address { get; init; }
+
     [Required]
     [EnumDataType(typeof(UserTypes))]
     public required UserTypes UserType { get; init; }

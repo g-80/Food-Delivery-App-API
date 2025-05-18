@@ -1,5 +1,5 @@
 /// <summary>
-/// Provides test fixtures for integration and unit tests.
+/// Provides test fixtures for integration tests.
 /// </summary>
 internal static class TestData
 {
@@ -14,6 +14,7 @@ internal static class TestData
                 Category = "Pizzeria",
                 Latitude = 51.5156732,
                 Longitude = -0.1522338,
+                Address = Addresses.addressRequests[0],
             },
             new FoodPlaceCreateRequest
             {
@@ -21,6 +22,7 @@ internal static class TestData
                 Category = "Coffee shop",
                 Latitude = 51.5162493,
                 Longitude = -0.1527786,
+                Address = Addresses.addressRequests[0],
             },
             new FoodPlaceCreateRequest
             {
@@ -28,6 +30,7 @@ internal static class TestData
                 Category = "Greek",
                 Latitude = 51.516791,
                 Longitude = -0.151466,
+                Address = Addresses.addressRequests[0],
             },
         };
         public static readonly List<int> assignedIds = new();
@@ -112,6 +115,27 @@ internal static class TestData
         public static readonly List<int> assignedIds = new();
     }
 
+    public static class Addresses
+    {
+        public static List<AddressCreateRequest> addressRequests = new()
+        {
+            new()
+            {
+                NumberAndSteet = "123 Main Street",
+                City = "London",
+                Postcode = "W1T 1RR",
+            },
+            new()
+            {
+                NumberAndSteet = "456 Other Street",
+                City = "London",
+                Postcode = "W1T 6BD",
+            },
+        };
+
+        public static readonly List<int> assignedIds = new();
+    }
+
     public static class Users
     {
         public static List<UserCreateRequest> createUserRequests = new()
@@ -123,6 +147,7 @@ internal static class TestData
                 Password = "very_secure_password_123",
                 PhoneNumber = "07123456789",
                 UserType = UserTypes.customer,
+                Address = Addresses.addressRequests[1],
             },
             new()
             {
@@ -131,6 +156,16 @@ internal static class TestData
                 Password = "very_secure_password_123",
                 PhoneNumber = "07123123123",
                 UserType = UserTypes.food_place,
+                Address = Addresses.addressRequests[0],
+            },
+            new()
+            {
+                FirstName = "The",
+                Surname = "Driver",
+                Password = "very_secure_password_123",
+                PhoneNumber = "07111222333",
+                UserType = UserTypes.driver,
+                Address = Addresses.addressRequests[1],
             },
         };
 

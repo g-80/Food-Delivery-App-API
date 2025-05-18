@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 
@@ -13,11 +14,13 @@ builder.Services.AddControllers();
 string connectionString =
     builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new Exception("Could not read the database ConnectionString");
-builder.Services.AddSingleton(connectionString);
-builder.Services.AddScoped<IFoodPlacesRepository>(_ => new FoodPlacesRepository(
-    connectionString,
-    builder.Configuration.GetValue<int>("SearchDistance:Default")
-));
+builder.Services.Configure<DatabaseOptions>(options => options.ConnectionString = connectionString);
+builder.Services.AddScoped<IFoodPlacesRepository>(serviceProvider =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<DatabaseOptions>>();
+    int distance = builder.Configuration.GetValue<int>("SearchDistance:Default");
+    return new FoodPlacesRepository(options, distance);
+});
 builder.Services.AddScoped<IFoodPlacesService, FoodPlacesService>();
 builder.Services.AddScoped<IItemsRepository, ItemsRepository>();
 builder.Services.AddScoped<IItemService, ItemService>();
@@ -33,7 +36,19 @@ builder.Services.AddScoped<IUsersRepository, UsersRepository>();
 builder.Services.AddScoped<IRefreshTokensRepository, RefreshTokensRepository>();
 builder.Services.AddTransient<AuthService>();
 builder.Services.AddScoped<TokenService>();
-builder.Services.AddTransient<DatabaseInitializer>();
+builder.Services.AddScoped<AddressesRepository>();
+builder.Services.AddScoped<AddressesService>();
+builder.Services.AddScoped<DeliveriesRepository>();
+builder.Services.AddScoped<DeliveriesService>();
+builder.Services.AddScoped<DriversRepository>();
+builder.Services.AddScoped<DriversLocationsRepository>();
+builder.Services.AddScoped<DriversStatusesRepository>();
+builder.Services.AddScoped<DriversService>();
+builder.Services.AddScoped<JourneyCalculationService>();
+builder.Services.AddTransient<OrderAssignmentService>();
+builder.Services.AddSingleton<OrdersAssignments>();
+
+builder.Services.AddSignalR();
 
 builder
     .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -50,6 +65,22 @@ builder
                 Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
             ),
             ValidateIssuerSigningKey = true,
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.HttpContext.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/driver"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            },
         };
     });
 
@@ -70,9 +101,10 @@ app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<DriverHub>("/hubs/driver");
 
 Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
-var dbInitializer = app.Services.GetRequiredService<DatabaseInitializer>();
+var dbInitializer = new DatabaseInitializer(connectionString);
 dbInitializer.InitializeDatabase();
 
 app.Run();

@@ -28,9 +28,10 @@ public class AuthControllerTests
         {
             FirstName = "John",
             Surname = "Doe",
-            PhoneNumber = "07111222333",
+            PhoneNumber = "07147258369",
             Password = "SecurePassword!",
             UserType = UserTypes.customer,
+            Address = TestData.Addresses.addressRequests[1],
         };
 
         // Act
@@ -63,6 +64,7 @@ public class AuthControllerTests
             PhoneNumber = "07333666999",
             Password = "SecurePassword!",
             UserType = UserTypes.customer,
+            Address = TestData.Addresses.addressRequests[1],
         };
 
         // Act
@@ -89,6 +91,7 @@ public class AuthControllerTests
             PhoneNumber = "07555666333",
             Password = "SecurePassword!",
             UserType = UserTypes.customer,
+            Address = TestData.Addresses.addressRequests[1],
         };
         await _factory.Client.PostAsJsonAsync(HttpHelper.Urls.SignUp, signUpRequest);
 
@@ -145,6 +148,7 @@ public class AuthControllerTests
             PhoneNumber = "07111444777",
             Password = "SecurePassword!",
             UserType = UserTypes.customer,
+            Address = TestData.Addresses.addressRequests[1],
         };
         await _factory.Client.PostAsJsonAsync(HttpHelper.Urls.SignUp, signUpRequest);
 
@@ -206,6 +210,7 @@ public class AuthControllerTests
             PhoneNumber = "07888555222",
             Password = "SecurePassword!",
             UserType = UserTypes.customer,
+            Address = TestData.Addresses.addressRequests[1],
         };
         await _factory.Client.PostAsJsonAsync(HttpHelper.Urls.SignUp, signUpRequest);
 

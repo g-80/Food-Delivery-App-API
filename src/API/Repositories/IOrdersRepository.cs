@@ -1,8 +1,6 @@
-using Npgsql;
-
 public interface IOrdersRepository
 {
     Task<bool> CancelOrder(int id);
-    Task<int> CreateOrder(CreateOrderDTO dto, NpgsqlTransaction? transaction = null);
+    Task<int> CreateOrder(CreateOrderDTO dto);
     Task<Order?> GetOrderById(int id);
 }

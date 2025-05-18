@@ -1,10 +1,11 @@
 using Dapper;
+using Microsoft.Extensions.Options;
 using Npgsql;
 
 public class OrdersRepository : BaseRepository, IOrdersRepository
 {
-    public OrdersRepository(string connectionString)
-        : base(connectionString) { }
+    public OrdersRepository(IOptions<DatabaseOptions> options)
+        : base(options.Value.ConnectionString) { }
 
     public async Task<Order?> GetOrderById(int id)
     {
@@ -22,24 +23,22 @@ public class OrdersRepository : BaseRepository, IOrdersRepository
         ;
     }
 
-    public async Task<int> CreateOrder(CreateOrderDTO dto, NpgsqlTransaction? transaction = null)
+    public async Task<int> CreateOrder(CreateOrderDTO dto)
     {
-        var parameters = new { dto.CustomerId, dto.TotalPrice };
+        var parameters = new
+        {
+            dto.CustomerId,
+            dto.TotalPrice,
+            dto.FoodPlaceId,
+            dto.DeliveryAddressId,
+        };
         const string sql =
             @"
-            INSERT INTO orders(customer_id, total_price)
+            INSERT INTO orders(customer_id, food_place_id, delivery_address_id, total_price)
             VALUES
-            (@CustomerId, @TotalPrice)
+            (@CustomerId, @FoodPlaceId, @DeliveryAddressId, @TotalPrice)
             RETURNING id
         ";
-        if (transaction != null)
-        {
-            return await transaction.Connection!.ExecuteScalarAsync<int>(
-                sql,
-                parameters,
-                transaction
-            );
-        }
         using (var connection = new NpgsqlConnection(_connectionString))
         {
             return await connection.ExecuteScalarAsync<int>(sql, parameters);

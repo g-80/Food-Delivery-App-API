@@ -1,10 +1,11 @@
 using Dapper;
+using Microsoft.Extensions.Options;
 using Npgsql;
 
 public class ItemsRepository : BaseRepository, IItemsRepository
 {
-    public ItemsRepository(string connectionString)
-        : base(connectionString) { }
+    public ItemsRepository(IOptions<DatabaseOptions> options)
+        : base(options.Value.ConnectionString) { }
 
     public async Task<Item?> GetItemById(int id)
     {

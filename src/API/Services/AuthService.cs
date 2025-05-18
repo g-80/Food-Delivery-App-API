@@ -1,3 +1,4 @@
+using System.Transactions;
 using Microsoft.AspNetCore.Identity;
 
 public class AuthService
@@ -5,16 +6,19 @@ public class AuthService
     IUsersRepository _usersRepo;
     TokenService _tokenService;
     ICartService _cartService;
+    AddressesService _addressesService;
 
     public AuthService(
         IUsersRepository usersRepository,
         TokenService tokenService,
-        ICartService cartService
+        ICartService cartService,
+        AddressesService addressesService
     )
     {
         _usersRepo = usersRepository;
         _tokenService = tokenService;
         _cartService = cartService;
+        _addressesService = addressesService;
     }
 
     public async Task<int?> SignUpUserAsync(UserCreateRequest request)
@@ -33,8 +37,11 @@ public class AuthService
         userDTO.Password = hashedPassword;
         userDTO.UserType = request.UserType;
 
+        using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
         var userId = await _usersRepo.CreateUser(userDTO);
+        await _addressesService.CreateAddress(request.Address, userId);
         await _cartService.CreateCartAsync(userId);
+        scope.Complete();
 
         return userId;
     }
