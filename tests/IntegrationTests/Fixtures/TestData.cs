@@ -155,7 +155,7 @@ internal static class TestData
                 Surname = "Doe",
                 Password = "very_secure_password_123",
                 PhoneNumber = "07123123123",
-                UserType = UserTypes.food_place,
+                UserType = UserTypes.foodplace,
                 Address = Addresses.addressRequests[0],
             },
             new()

@@ -5,9 +5,12 @@ using Microsoft.AspNetCore.SignalR;
 public class DriverHub : Hub
 {
     private readonly DriversService _driversService;
-    private readonly OrderAssignmentService _orderAssignmentService;
+    private readonly DeliveryAssignmentService _orderAssignmentService;
 
-    public DriverHub(DriversService driversService, OrderAssignmentService orderAssignmentService)
+    public DriverHub(
+        DriversService driversService,
+        DeliveryAssignmentService orderAssignmentService
+    )
     {
         _driversService = driversService;
         _orderAssignmentService = orderAssignmentService;
@@ -38,13 +41,13 @@ public class DriverHub : Hub
     public async Task AcceptOrderOffer(int orderId)
     {
         string driverId = GetDriverId();
-        await _orderAssignmentService!.AcceptOrderOffer(int.Parse(driverId), orderId);
+        await _orderAssignmentService!.AcceptDeliveryOffer(int.Parse(driverId), orderId);
     }
 
     public void RejectOrderOffer(int orderId)
     {
         string driverId = GetDriverId();
-        _orderAssignmentService!.RejectOrderOffer(int.Parse(driverId), orderId);
+        _orderAssignmentService!.RejectDeliveryOffer(int.Parse(driverId), orderId);
     }
 
     private string GetDriverId()

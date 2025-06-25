@@ -1,7 +1,8 @@
 public class CreateCartItemDTO
 {
-    public required RequestedItem RequestedItem { get; set; }
-    public int CartId { get; set; }
-    public int UnitPrice { get; set; }
-    public int Subtotal { get; set; }
+    public required int CartId { get; init; }
+    public required int ItemId { get; init; }
+    public required int Quantity { get; init; }
+    public required int UnitPrice { get; init; }
+    public required int Subtotal { get; init; }
 }

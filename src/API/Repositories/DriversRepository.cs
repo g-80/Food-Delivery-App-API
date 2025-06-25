@@ -10,7 +10,8 @@ public class DriversRepository : BaseRepository
     public async Task<IEnumerable<AvailableDriverDTO>> GetAvailableDriversWithinDistance(
         double latitude,
         double longitude,
-        int distance
+        int distance,
+        DriverStatuses status
     )
     {
         var parameters = new
@@ -18,6 +19,7 @@ public class DriversRepository : BaseRepository
             latitude,
             longitude,
             distance,
+            status,
         };
 
         const string sql =
@@ -35,7 +37,7 @@ public class DriversRepository : BaseRepository
         INNER JOIN 
             drivers_locations dl ON u.id = dl.driver_id
         WHERE 
-            ds.status = 'online' AND
+            ds.status = @status AND
             dl.updated_at > CURRENT_TIMESTAMP - INTERVAL '2 minutes' AND
             ST_DWithin(
                 dl.location, 

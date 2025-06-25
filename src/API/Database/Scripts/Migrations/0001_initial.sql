@@ -62,7 +62,7 @@ CREATE TABLE public.users (
     surname text NOT NULL,
     phone_number text NOT NULL,
     password text NOT NULL,
-    user_type text NOT NULL CHECK (user_type IN ('food_place', 'customer', 'driver')),
+    user_type integer NOT NULL CHECK (user_type IN (1, 2, 3)),
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (phone_number, user_type)
@@ -75,12 +75,14 @@ CREATE TABLE public.addresses (
     city text NOT NULL,
     postcode text NOT NULL,
     is_primary BOOLEAN NOT NULL,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, is_primary),
+    UNIQUE (user_id, number_and_street, city, postcode)
 );
 
 CREATE TABLE public.drivers_statuses (
     driver_id integer PRIMARY KEY NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-    status text NOT NULL CHECK (status IN ('online', 'offered', 'delivering')),
+    status integer NOT NULL CHECK (status IN (1, 2, 3)),
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -100,8 +102,9 @@ CREATE TABLE public.food_places (
     latitude numeric(8, 6),
     location public.geometry(Point,4326),
     address_id integer REFERENCES addresses(id) ON DELETE RESTRICT,
+    user_id integer NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
 );
 
 CREATE TABLE public.food_places_items (
@@ -121,7 +124,8 @@ CREATE TABLE public.orders (
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     delivery_address_id integer NOT NULL REFERENCES addresses(id) ON DELETE RESTRICT,
     total_price integer NOT NULL,
-    is_cancelled boolean NOT NULL DEFAULT FALSE
+    status integer NOT NULL CHECK (status IN (1, 2, 3, 4, 5, -1)),
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE public.order_items (
@@ -129,6 +133,7 @@ CREATE TABLE public.order_items (
     order_id integer NOT NULL REFERENCES orders(id) ON DELETE RESTRICT,
     item_id integer NOT NULL REFERENCES food_places_items(id) ON DELETE RESTRICT,
     quantity integer NOT NULL,
+    unit_price integer NOT NULL,
     subtotal integer NOT NULL
 );
 
@@ -140,7 +145,7 @@ CREATE TABLE public.deliveries (
     confirmation_code text NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    status text NOT NULL CHECK (status IN ('pickup', 'delivering', 'delivered')),
+    status integer NOT NULL CHECK (status IN (1, 2, 3, 4, 5, -1)),
     delivered_at timestamp with time zone
 );
 

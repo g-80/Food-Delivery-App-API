@@ -47,7 +47,7 @@ public class UsersRepository : BaseRepository, IUsersRepository
             dto.Surname,
             dto.PhoneNumber,
             dto.Password,
-            UserType = dto.UserType.ToString(),
+            dto.UserType,
         };
         const string sql =
             @"

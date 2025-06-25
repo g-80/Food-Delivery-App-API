@@ -17,17 +17,17 @@ public class DriversService
 
     public async Task CreateDriverStatusAsync(int driverId)
     {
-        await _driversStatusesRepo.CreateDriverStatus(driverId, DriverStatuses.online.ToString());
+        await _driversStatusesRepo.CreateDriverStatus(driverId, DriverStatuses.online);
     }
 
     public async Task UpdateDriverStatus(int driverId, DriverStatuses newStatus)
     {
-        await _driversStatusesRepo.UpdateDriverStatus(driverId, newStatus.ToString());
+        await _driversStatusesRepo.UpdateDriverStatus(driverId, newStatus);
     }
 
     public async Task SetDriverOnlineAsync(int driverId)
     {
-        await _driversStatusesRepo.UpdateDriverStatus(driverId, DriverStatuses.online.ToString());
+        await _driversStatusesRepo.UpdateDriverStatus(driverId, DriverStatuses.online);
     }
 
     public async Task RemoveDriverStatusAsync(int driverId)
@@ -54,7 +54,8 @@ public class DriversService
         var availableDrivers = await _driversRepo.GetAvailableDriversWithinDistance(
             latitude,
             longitude,
-            distance
+            distance,
+            DriverStatuses.online
         );
         return availableDrivers;
     }

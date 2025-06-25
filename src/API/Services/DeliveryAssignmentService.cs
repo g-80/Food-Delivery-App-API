@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 
-public class OrderAssignmentService
+public class DeliveryAssignmentService
 {
     private readonly DriversService _driversService;
     private readonly IOrdersRepository _ordersRepo;
@@ -9,12 +9,12 @@ public class OrderAssignmentService
     private readonly DeliveriesService _deliveriesService;
     private readonly JourneyCalculationService _journeryCalcService;
     private readonly IHubContext<DriverHub> _hubContext;
-    private readonly OrdersAssignments _ordersAssignments;
+    private readonly DeliveriesAssignments _deliveriesAssignments;
     private readonly TimeSpan _offerTimeout = TimeSpan.FromSeconds(30);
     private readonly int _maxAssignmentAttempts = 3;
     private int _defaultDistance = 1500;
 
-    public OrderAssignmentService(
+    public DeliveryAssignmentService(
         DriversService driversService,
         IOrdersRepository ordersRepository,
         IFoodPlacesRepository foodPlacesRepository,
@@ -22,7 +22,7 @@ public class OrderAssignmentService
         JourneyCalculationService journeyCalculationService,
         DeliveriesService deliveriesService,
         IHubContext<DriverHub> hubContext,
-        OrdersAssignments ordersAssignments
+        DeliveriesAssignments deliveriesAssignments
     )
     {
         _driversService = driversService;
@@ -32,12 +32,12 @@ public class OrderAssignmentService
         _deliveriesService = deliveriesService;
         _journeryCalcService = journeyCalculationService;
         _hubContext = hubContext;
-        _ordersAssignments = ordersAssignments;
+        _deliveriesAssignments = deliveriesAssignments;
     }
 
-    public async Task AssignOrderToDriver(int orderId)
+    public async Task AssignDeliveryToADriver(int orderId)
     {
-        var job = _ordersAssignments.GetOrCreateAssignmentJob(orderId);
+        var job = _deliveriesAssignments.GetOrCreateAssignmentJob(orderId);
         job.CurrentAttempt++;
 
         var order = await _ordersRepo.GetOrderById(orderId);
@@ -50,21 +50,23 @@ public class OrderAssignmentService
 
         if (!nearbyDrivers.Any())
         {
-            Console.WriteLine($"No drivers available nearby order {orderId}. Scheduling retry.");
+            Console.WriteLine(
+                $"No drivers available nearby food place id {foodPlace.Id} for order {orderId}. Scheduling retry."
+            );
             await ScheduleRetryAttempt(job);
             return;
         }
 
         foreach (var driver in nearbyDrivers)
         {
-            var orderDto = await CreateOrderOfferDto(order!, foodPlace, driver);
-            await OfferOrderToDriver(job, orderDto, driver.DriverId);
+            var orderDto = await CreateDeliveryOfferDto(order!, foodPlace, driver);
+            await OfferDeliveryToDriver(job, orderDto, driver.DriverId);
         }
 
         _ = CheckAssignmentSuccess(job);
     }
 
-    private async Task CheckAssignmentSuccess(OrderAssignmentJob job)
+    private async Task CheckAssignmentSuccess(DeliveryAssignmentJob job)
     {
         await Task.Delay(_offerTimeout);
 
@@ -77,16 +79,16 @@ public class OrderAssignmentService
         }
     }
 
-    private async Task ScheduleRetryAttempt(OrderAssignmentJob job)
+    private async Task ScheduleRetryAttempt(DeliveryAssignmentJob job)
     {
         if (job.CurrentAttempt < _maxAssignmentAttempts)
         {
             await Task.Delay(TimeSpan.FromSeconds(15));
-            await AssignOrderToDriver(job.OrderId);
+            await AssignDeliveryToADriver(job.OrderId);
         }
         else
         {
-            _ordersAssignments.RemoveAssignmentJob(job.OrderId);
+            _deliveriesAssignments.RemoveAssignmentJob(job.OrderId);
             Console.WriteLine(
                 $"Max assignment attempts reached for order {job.OrderId}. Could not assign a driver."
             );
@@ -94,7 +96,11 @@ public class OrderAssignmentService
         }
     }
 
-    private async Task OfferOrderToDriver(OrderAssignmentJob job, OrderOfferDTO dto, int driverId)
+    private async Task OfferDeliveryToDriver(
+        DeliveryAssignmentJob job,
+        DeliveryOfferDTO dto,
+        int driverId
+    )
     {
         var cts = new CancellationTokenSource();
         job.PendingOffers[driverId] = cts;
@@ -102,7 +108,7 @@ public class OrderAssignmentService
         await _driversService.UpdateDriverStatus(driverId, DriverStatuses.offered);
 
         var connection = _hubContext.Clients.User(driverId.ToString());
-        await connection.SendAsync("OfferOrder", dto, job.OrderId);
+        await connection.SendAsync("ReceiveDeliveryOffer", dto, job.OrderId);
 
         _ = Task.Run(async () =>
         {
@@ -123,7 +129,7 @@ public class OrderAssignmentService
         });
     }
 
-    private async Task CancelOfferForDriver(OrderAssignmentJob job, int driverId)
+    private async Task CancelOfferForDriver(DeliveryAssignmentJob job, int driverId)
     {
         if (job.AssignedDriverId == driverId)
         {
@@ -133,16 +139,16 @@ public class OrderAssignmentService
         job.PendingOffers.TryRemove(driverId, out _);
 
         var connection = _hubContext.Clients.User(driverId.ToString());
-        await connection.SendAsync("OrderOfferCancelled");
+        await connection.SendAsync("DeliveryOfferCancelled");
 
         await _driversService.UpdateDriverStatus(driverId, DriverStatuses.online);
     }
 
-    public async Task AcceptOrderOffer(int driverId, int orderId)
+    public async Task AcceptDeliveryOffer(int driverId, int orderId)
     {
-        var job = _ordersAssignments.GetAssignmentJob(orderId);
+        var job = _deliveriesAssignments.GetAssignmentJob(orderId);
 
-        // Check if a driver is already assigned to this order in case of a delay
+        // Check if a driver is already assigned to this delivery in case of a delay
         if (job.AssignedDriverId != 0)
         {
             return;
@@ -154,17 +160,17 @@ public class OrderAssignmentService
 
         await _driversService.UpdateDriverStatus(driverId, DriverStatuses.delivering);
 
-        await _deliveriesService.CreateDeliveryAsync(orderId, driverId);
+        await _deliveriesService.UpdateDeliveryDriverAsync(orderId, driverId);
 
         var connection = _hubContext.Clients.User(driverId.ToString());
-        await connection.SendAsync("OrderAssigned", orderId);
+        await connection.SendAsync("AssignDelivery", orderId);
 
-        _ordersAssignments.RemoveAssignmentJob(job.OrderId);
+        _deliveriesAssignments.RemoveAssignmentJob(job.OrderId);
     }
 
-    public void RejectOrderOffer(int driverId, int orderId)
+    public void RejectDeliveryOffer(int driverId, int orderId)
     {
-        var job = _ordersAssignments.GetAssignmentJob(orderId);
+        var job = _deliveriesAssignments.GetAssignmentJob(orderId);
 
         if (job.PendingOffers.TryRemove(driverId, out var cts))
         {
@@ -172,7 +178,7 @@ public class OrderAssignmentService
         }
     }
 
-    private void CancelAllPendingOffers(OrderAssignmentJob job)
+    private void CancelAllPendingOffers(DeliveryAssignmentJob job)
     {
         var pendingDriversIds = job.PendingOffers.Keys.ToList();
         foreach (var driverId in pendingDriversIds)
@@ -184,7 +190,7 @@ public class OrderAssignmentService
         }
     }
 
-    private async Task<OrderOfferDTO> CreateOrderOfferDto(
+    private async Task<DeliveryOfferDTO> CreateDeliveryOfferDto(
         Order order,
         FoodPlace foodPlace,
         AvailableDriverDTO availableDriver
@@ -197,7 +203,7 @@ public class OrderAssignmentService
             await _addressesService.GetAddressById(order.DeliveryAddressId)
             ?? throw new Exception("Delivery destination address not found");
 
-        return new OrderOfferDTO
+        return new DeliveryOfferDTO
         {
             FoodPlace = foodPlace.Name,
             FoodPlaceAddress = foodPlaceAddress,

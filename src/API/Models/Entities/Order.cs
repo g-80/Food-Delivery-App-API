@@ -6,5 +6,6 @@ public class Order
     public int DeliveryAddressId { get; set; }
     public DateTime CreatedAt { get; set; }
     public int TotalPrice { get; set; }
-    public bool IsCancelled { get; set; }
+    public OrderStatuses Status { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }

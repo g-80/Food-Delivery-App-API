@@ -13,8 +13,8 @@ public class DeliveriesRepository : BaseRepository
 
         const string sql =
             @"
-            INSERT INTO deliveries(order_id, address_id, driver_id, confirmation_code, status)
-            VALUES (@OrderId, @AddressId, @DriverId, @ConfirmationCode, @status)
+            INSERT INTO deliveries(order_id, address_id, confirmation_code, status)
+            VALUES (@OrderId, @AddressId, @ConfirmationCode, @status)
             RETURNING id
         ";
         using (var connection = new NpgsqlConnection(_connectionString))
@@ -41,15 +41,32 @@ public class DeliveriesRepository : BaseRepository
         ;
     }
 
-    public async Task SetAsDelivered(int orderId)
+    public async Task UpdateDeliveryStatus(int orderId, DeliveryStatuses newStatus)
     {
-        var parameters = new { OrderId = orderId };
+        var parameters = new { orderId, newStatus };
 
         const string sql =
             @"
                 UPDATE deliveries
-                SET is_delivered = 'true'
-                WHERE order_id = @OrderId
+                SET status = @newStatus
+                WHERE order_id = @orderId
+            ";
+        using (var connection = new NpgsqlConnection(_connectionString))
+        {
+            await connection.ExecuteAsync(sql, parameters);
+        }
+        ;
+    }
+
+    public async Task UpdateDeliveryDriver(int orderId, int driverId)
+    {
+        var parameters = new { orderId, driverId };
+
+        const string sql =
+            @"
+                UPDATE deliveries
+                SET driver_id = @driverId
+                WHERE order_id = @orderId
             ";
         using (var connection = new NpgsqlConnection(_connectionString))
         {

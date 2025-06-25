@@ -1,19 +1,19 @@
 using System.Collections.Concurrent;
 
-public class OrdersAssignments
+public class DeliveriesAssignments
 {
-    private readonly ConcurrentDictionary<int, OrderAssignmentJob> _activeAssignments = new();
+    private readonly ConcurrentDictionary<int, DeliveryAssignmentJob> _activeAssignments = new();
 
-    public OrderAssignmentJob GetOrCreateAssignmentJob(int orderId)
+    public DeliveryAssignmentJob GetOrCreateAssignmentJob(int orderId)
     {
         return _activeAssignments.GetOrAdd(orderId, CreateNewAssignmentJob);
     }
 
-    public OrderAssignmentJob GetAssignmentJob(int orderId)
+    public DeliveryAssignmentJob GetAssignmentJob(int orderId)
     {
         if (!_activeAssignments.TryGetValue(orderId, out var job))
         {
-            throw new Exception($"Order assignment job for order {orderId} not found");
+            throw new Exception($"Delivery assignment job for order {orderId} not found");
         }
         return job;
     }
@@ -23,9 +23,9 @@ public class OrdersAssignments
         _activeAssignments.TryRemove(orderId, out _);
     }
 
-    private OrderAssignmentJob CreateNewAssignmentJob(int orderId)
+    private DeliveryAssignmentJob CreateNewAssignmentJob(int orderId)
     {
-        return new OrderAssignmentJob
+        return new DeliveryAssignmentJob
         {
             OrderId = orderId,
             CurrentAttempt = 0,

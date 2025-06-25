@@ -12,8 +12,8 @@ public class CartItemsRepository : BaseRepository, ICartItemsRepository
         var parameters = new
         {
             dto.CartId,
-            dto.RequestedItem.ItemId,
-            dto.RequestedItem.Quantity,
+            dto.ItemId,
+            dto.Quantity,
             dto.UnitPrice,
             dto.Subtotal,
         };
@@ -43,6 +43,24 @@ public class CartItemsRepository : BaseRepository, ICartItemsRepository
         using (var connection = new NpgsqlConnection(_connectionString))
         {
             return await connection.QueryAsync<CartItem>(sql, parameters);
+        }
+        ;
+    }
+
+    public async Task<IEnumerable<GetCartItemDetailsDTO>> GetCartItemsDetailsByCartId(int cartId)
+    {
+        var parameters = new { cartId };
+
+        const string sql =
+            @"
+            SELECT *
+            FROM cart_items ci
+            INNER JOIN food_places_items fi ON ci.item_id = fi.id
+            WHERE cart_id = @cartId
+        ";
+        using (var connection = new NpgsqlConnection(_connectionString))
+        {
+            return await connection.QueryAsync<GetCartItemDetailsDTO>(sql, parameters);
         }
         ;
     }

@@ -1,4 +1,4 @@
-public class OrderOfferDTO
+public class DeliveryOfferDTO
 {
     // not sure if we need latlong
     public required string FoodPlace { get; init; }

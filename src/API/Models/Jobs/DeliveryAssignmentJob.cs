@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-public class OrderAssignmentJob
+public class DeliveryAssignmentJob
 {
     public int OrderId { get; set; }
     public int CurrentAttempt { get; set; } = 0;

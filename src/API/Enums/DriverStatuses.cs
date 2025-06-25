@@ -1,6 +1,6 @@
 public enum DriverStatuses
 {
-    online,
+    online = 1,
     offered,
     delivering,
 }

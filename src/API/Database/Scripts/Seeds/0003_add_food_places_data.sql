@@ -94,3 +94,7 @@ VALUES
 ('Cluckin'' Bell', 'Fast food', 51.5130680796805, -0.201298021934468),
 ('Los Pollos Hermanos', 'Fast food', 51.5077220512516, -0.194871923075393),
 ('Dinner Bell', 'Fast food', 51.5146149838965, -0.198570279567287);
+
+UPDATE food_places
+SET address_id = 2
+WHERE name = 'Flying Pizza';

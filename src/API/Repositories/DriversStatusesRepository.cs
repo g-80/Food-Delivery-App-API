@@ -7,7 +7,7 @@ public class DriversStatusesRepository : BaseRepository
     public DriversStatusesRepository(IOptions<DatabaseOptions> options)
         : base(options.Value.ConnectionString) { }
 
-    public async Task CreateDriverStatus(int driverId, string status)
+    public async Task CreateDriverStatus(int driverId, DriverStatuses status)
     {
         var parameters = new { Id = driverId, Status = status };
 
@@ -22,7 +22,7 @@ public class DriversStatusesRepository : BaseRepository
         }
     }
 
-    public async Task UpdateDriverStatus(int driverId, string newStatus)
+    public async Task UpdateDriverStatus(int driverId, DriverStatuses newStatus)
     {
         var parameters = new { Id = driverId, Status = newStatus };
 

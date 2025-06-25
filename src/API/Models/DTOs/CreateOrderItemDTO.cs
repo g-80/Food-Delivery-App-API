@@ -1,6 +1,8 @@
 public class CreateOrderItemDTO
 {
-    public required RequestedItem RequestedItem { get; set; }
-    public int OrderId { get; set; }
-    public int Subtotal { get; set; }
+    public required int OrderId { get; init; }
+    public required int ItemId { get; init; }
+    public required int Quantity { get; init; }
+    public required int UnitPrice { get; init; }
+    public required int Subtotal { get; init; }
 }

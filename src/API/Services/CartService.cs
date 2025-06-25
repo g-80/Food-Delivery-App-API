@@ -133,8 +133,9 @@ public class CartService : ICartService
             await _cartItemsRepo.CreateCartItem(
                 new CreateCartItemDTO
                 {
-                    RequestedItem = req.Item,
                     CartId = cart.Id,
+                    ItemId = req.Item.ItemId,
+                    Quantity = req.Item.Quantity,
                     UnitPrice = unitPrice,
                     Subtotal = subtotal,
                 }

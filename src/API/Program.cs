@@ -1,4 +1,6 @@
 using System.Text;
+using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -32,6 +34,7 @@ builder.Services.AddTransient<ICartService, CartService>();
 builder.Services.AddScoped<IOrdersRepository, OrdersRepository>();
 builder.Services.AddScoped<IOrdersItemsRepository, OrdersItemsRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<OrderProcessingOrchestrator>();
 builder.Services.AddScoped<IUsersRepository, UsersRepository>();
 builder.Services.AddScoped<IRefreshTokensRepository, RefreshTokensRepository>();
 builder.Services.AddTransient<AuthService>();
@@ -45,8 +48,10 @@ builder.Services.AddScoped<DriversLocationsRepository>();
 builder.Services.AddScoped<DriversStatusesRepository>();
 builder.Services.AddScoped<DriversService>();
 builder.Services.AddScoped<JourneyCalculationService>();
-builder.Services.AddTransient<OrderAssignmentService>();
-builder.Services.AddSingleton<OrdersAssignments>();
+builder.Services.AddTransient<DeliveryAssignmentService>();
+builder.Services.AddSingleton<DeliveriesAssignments>();
+builder.Services.AddScoped<OrderConfirmationService>();
+builder.Services.AddSingleton<OrdersConfirmations>();
 
 builder.Services.AddSignalR();
 
@@ -74,7 +79,7 @@ builder
                 var accessToken = context.HttpContext.Request.Query["access_token"];
                 var path = context.HttpContext.Request.Path;
 
-                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/driver"))
+                if (!string.IsNullOrEmpty(accessToken))
                 {
                     context.Token = accessToken;
                 }
@@ -83,6 +88,12 @@ builder
             },
         };
     });
+
+builder.Services.AddHangfire(configuration =>
+    configuration.UsePostgreSqlStorage(c => c.UseNpgsqlConnection(connectionString))
+);
+
+builder.Services.AddHangfireServer();
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
@@ -102,6 +113,9 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<DriverHub>("/hubs/driver");
+app.MapHub<FoodPlaceHub>("/hubs/foodplace");
+
+app.UseHangfireDashboard();
 
 Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 var dbInitializer = new DatabaseInitializer(connectionString);

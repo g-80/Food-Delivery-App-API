@@ -28,15 +28,31 @@ public class AddressesRepository : BaseRepository
     {
         var parameters = dto;
 
+        // Use a CTE to insert the address and return the ID if it was inserted,
+        // or select the existing ID if it already exists.
+        // ON CONFLICT DO NOTHING will cause no row returns.
+        // So we need another SELECT to get the existing id.
+        // The second SELECT will get the existing row.
+        // if it inserts successfully, then there will be two same records, then we need UNION to merge the result.
+
         const string sql =
             @"
+            WITH inserted_address AS (
             INSERT INTO addresses (user_id, number_and_street, city, postcode, is_primary)
             VALUES (@UserId, @NumberAndStreet, @City, @Postcode, @IsPrimary)
+            ON CONFLICT DO NOTHING
             RETURNING id
+            )
+            SELECT *
+            FROM inserted_address
+            UNION
+            SELECT id
+            FROM addresses
+            WHERE user_id = @UserId AND number_and_street = @NumberAndStreet AND city = @City AND postcode = @Postcode
             ";
         using (var connection = new NpgsqlConnection(_connectionString))
         {
-            return await connection.ExecuteAsync(sql, parameters);
+            return await connection.QuerySingleAsync<int>(sql, parameters);
         }
     }
 }
