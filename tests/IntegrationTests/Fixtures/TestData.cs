@@ -121,13 +121,13 @@ internal static class TestData
         {
             new()
             {
-                NumberAndSteet = "123 Main Street",
+                NumberAndStreet = "123 Main Street",
                 City = "London",
                 Postcode = "W1T 1RR",
             },
             new()
             {
-                NumberAndSteet = "456 Other Street",
+                NumberAndStreet = "456 Other Street",
                 City = "London",
                 Postcode = "W1T 6BD",
             },
@@ -155,7 +155,7 @@ internal static class TestData
                 Surname = "Doe",
                 Password = "very_secure_password_123",
                 PhoneNumber = "07123123123",
-                UserType = UserTypes.foodplace,
+                UserType = UserTypes.food_place,
                 Address = Addresses.addressRequests[0],
             },
             new()

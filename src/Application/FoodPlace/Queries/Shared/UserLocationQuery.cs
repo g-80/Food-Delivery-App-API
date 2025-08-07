@@ -1,0 +1,12 @@
+using System.ComponentModel.DataAnnotations;
+
+public abstract class UserLocationQuery
+{
+    [Required]
+    [Range(49.0, 59.0, ErrorMessage = "Invalid location")]
+    public double Latitude { get; set; }
+
+    [Required]
+    [Range(-8.0, 2.0, ErrorMessage = "Invalid location")]
+    public double Longitude { get; set; }
+}

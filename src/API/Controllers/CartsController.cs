@@ -7,60 +7,68 @@ using Microsoft.AspNetCore.Mvc;
 [Authorize(Roles = nameof(UserTypes.customer))]
 public class CartsController : ControllerBase
 {
-    private readonly ICartService _cartService;
+    private readonly AddItemHandler _addItemHandler;
+    private readonly RemoveItemHandler _removeItemHandler;
+    private readonly UpdateItemQuantityHandler _updateItemQuantityHandler;
+    private readonly GetCartHandler _getCartHandler;
+    private readonly IUserContextService _userContextService;
 
-    public CartsController(ICartService cartService)
+    public CartsController(
+        AddItemHandler addItemHandler,
+        RemoveItemHandler removeItemHandler,
+        UpdateItemQuantityHandler updateItemQuantityHandler,
+        GetCartHandler getCartHandler,
+        IUserContextService userContextService
+    )
     {
-        _cartService = cartService;
+        _addItemHandler = addItemHandler;
+        _removeItemHandler = removeItemHandler;
+        _updateItemQuantityHandler = updateItemQuantityHandler;
+        _getCartHandler = getCartHandler;
+        _userContextService = userContextService;
     }
 
-    [HttpPost("items")]
-    public async Task<IActionResult> AddCartItem([FromBody] CartAddItemRequest req)
+    [HttpPost]
+    public async Task<IActionResult> AddCartItem([FromBody] AddItemCommand req)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var customerId = GetCustomerIdFromJwt();
-        await _cartService.AddItemToCartAsync(customerId, req);
+        var customerId = _userContextService.GetUserIdFromJwt();
+        await _addItemHandler.Handle(req, customerId);
         return Ok();
     }
 
-    [HttpDelete("items/{id:int:min(1)}")]
+    [HttpDelete("{id:int:min(1)}")]
     public async Task<IActionResult> RemoveCartItem([FromRoute] int id)
     {
-        var customerId = GetCustomerIdFromJwt();
-        await _cartService.RemoveItemFromCartAsync(customerId, id);
+        var customerId = _userContextService.GetUserIdFromJwt();
+        await _removeItemHandler.Handle(id, customerId);
         return Ok();
     }
 
-    [HttpPatch("items/{id:int:min(1)}")]
+    [HttpPatch]
     public async Task<IActionResult> UpdateCartItemQuantity(
-        [FromRoute] int id,
-        [FromBody] CartUpdateItemQuantityRequest req
+        [FromBody] UpdateItemQuantityCommand req
     )
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var customerId = GetCustomerIdFromJwt();
-        await _cartService.UpdateCartItemQuantityAsync(customerId, id, req);
+        var customerId = _userContextService.GetUserIdFromJwt();
+        await _updateItemQuantityHandler.Handle(req, customerId);
         return Ok();
     }
 
     [HttpGet]
     public async Task<IActionResult> GetCart()
     {
-        var customerId = GetCustomerIdFromJwt();
-        CartResponse? result = await _cartService.GetCartDetailsAsync(customerId);
+        var customerId = _userContextService.GetUserIdFromJwt();
+        CartDTO? result = await _getCartHandler.Handle(customerId);
         if (result == null)
         {
-            return NotFound();
+            return Ok();
         }
         return Ok(result);
-    }
-
-    private int GetCustomerIdFromJwt()
-    {
-        return int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
     }
 }

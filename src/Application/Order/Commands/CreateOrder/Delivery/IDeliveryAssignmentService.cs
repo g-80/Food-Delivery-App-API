@@ -1,0 +1,6 @@
+public interface IDeliveryAssignmentService
+{
+    Task InitiateDeliveryAssignment(Order order);
+    Task AcceptDeliveryOffer(int driverId, int orderId);
+    void RejectDeliveryOffer(int driverId, int orderId);
+}
