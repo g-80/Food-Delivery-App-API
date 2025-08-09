@@ -28,7 +28,11 @@ namespace FoodDeliveryAppAPI.Infrastructure
             builder.Services.AddHangfireServer();
 
             builder.Logging.ClearProviders();
-            builder.Logging.AddConsole();
+            builder.Logging.AddSimpleConsole(options =>
+            {
+                options.IncludeScopes = true;
+                options.TimestampFormat = "[HH:mm:ss] ";
+            });
 
             builder.Services.AddTransient<IDatabaseInitialiser, DatabaseInitialiser>();
         }

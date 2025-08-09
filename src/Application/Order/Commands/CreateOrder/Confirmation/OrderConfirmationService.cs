@@ -7,18 +7,21 @@ public class OrderConfirmationService : IOrderConfirmationService
     private readonly IFoodPlaceRepository _foodPlaceRepository;
     private readonly IUserRepository _userRepository;
     private readonly TimeSpan _timeout = TimeSpan.FromSeconds(60);
+    private readonly ILogger<OrderConfirmationService> _logger;
 
     public OrderConfirmationService(
         IHubContext<FoodPlaceHub> hubContext,
         OrdersConfirmations ordersConfirmations,
         IFoodPlaceRepository foodPlaceRepository,
-        IUserRepository userRepository
+        IUserRepository userRepository,
+        ILogger<OrderConfirmationService> logger
     )
     {
         _hubContext = hubContext;
         _ordersConfirmations = ordersConfirmations;
         _foodPlaceRepository = foodPlaceRepository;
         _userRepository = userRepository;
+        _logger = logger;
     }
 
     public async Task<bool> RequestOrderConfirmation(Order order)
@@ -26,6 +29,11 @@ public class OrderConfirmationService : IOrderConfirmationService
         var confirmationDto = await CreateOrderConfirmationDTO(order);
 
         var foodPlaceUserId = await _foodPlaceRepository.GetFoodPlaceUserId(order.FoodPlaceId);
+        _logger.LogInformation(
+            "Requesting order confirmation for order ID: {OrderId} to food place user ID: {FoodPlaceUserId}",
+            order.Id,
+            foodPlaceUserId
+        );
         await _hubContext
             .Clients.User(foodPlaceUserId.ToString()!)
             .SendAsync("ReceiveOrderConfirmation", confirmationDto);
@@ -39,9 +47,26 @@ public class OrderConfirmationService : IOrderConfirmationService
         _ordersConfirmations.AddOrderConfirmation(order.Id, orderConfirmation);
         try
         {
+            _logger.LogInformation(
+                "Waiting for confirmation for order ID: {OrderId} with timeout of {Timeout} seconds",
+                order.Id,
+                _timeout.TotalSeconds
+            );
             await Task.Delay(_timeout, cts.Token);
+            _logger.LogInformation(
+                "Order ID: {OrderId} confirmation request completed without a response from food place {FoodPlaceId}.",
+                order.Id,
+                order.FoodPlaceId
+            );
         }
-        catch (TaskCanceledException) { }
+        catch (TaskCanceledException)
+        {
+            _logger.LogInformation(
+                "Order ID: {OrderId} confirmation request received a response from food place {FoodPlaceId}. Timeout stopped.",
+                order.Id,
+                order.FoodPlaceId
+            );
+        }
         finally
         {
             _ordersConfirmations.RemoveOrderConfirmation(order.Id);

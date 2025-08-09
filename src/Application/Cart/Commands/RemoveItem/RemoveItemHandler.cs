@@ -1,10 +1,12 @@
 public class RemoveItemHandler
 {
     private readonly ICartRepository _cartRepo;
+    private readonly ILogger<RemoveItemHandler> _logger;
 
-    public RemoveItemHandler(ICartRepository cartRepo)
+    public RemoveItemHandler(ICartRepository cartRepo, ILogger<RemoveItemHandler> logger)
     {
         _cartRepo = cartRepo;
+        _logger = logger;
     }
 
     public async Task Handle(int itemId, int customerId)
@@ -16,5 +18,10 @@ public class RemoveItemHandler
         cart.RemoveItem(itemId);
 
         await _cartRepo.UpdateCart(cart);
+        _logger.LogInformation(
+            "Item with ID: {ItemId} removed from cart for customer ID: {CustomerId}.",
+            itemId,
+            customerId
+        );
     }
 }

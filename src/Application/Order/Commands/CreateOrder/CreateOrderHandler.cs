@@ -8,13 +8,15 @@ public class CreateOrderHandler
     private readonly IOrderRepository _ordersRepository;
     private readonly IOrderConfirmationService _orderConfirmationService;
     private readonly IDeliveryAssignmentService _deliveryAssignmentService;
+    private readonly ILogger<CreateOrderHandler> _logger;
 
     public CreateOrderHandler(
         IAddressRepository addressRepository,
         ICartRepository cartRepository,
         IOrderRepository ordersRepository,
         IOrderConfirmationService orderConfirmationService,
-        IDeliveryAssignmentService deliveryAssignmentService
+        IDeliveryAssignmentService deliveryAssignmentService,
+        ILogger<CreateOrderHandler> logger
     )
     {
         _addressRepository = addressRepository;
@@ -22,6 +24,7 @@ public class CreateOrderHandler
         _ordersRepository = ordersRepository;
         _orderConfirmationService = orderConfirmationService;
         _deliveryAssignmentService = deliveryAssignmentService;
+        _logger = logger;
     }
 
     public async Task<int> Handle(CreateOrderCommand command, int customerId)
@@ -80,11 +83,17 @@ public class CreateOrderHandler
             await _cartRepository.UpdateCart(cart);
             scope.Complete();
         }
+        _logger.LogInformation(
+            "Order created with ID: {OrderId} for customer ID: {CustomerId}",
+            orderId,
+            customerId
+        );
         return orderId;
     }
 
     public async Task ProcessOrderAsync(int orderId)
     {
+        _logger.LogInformation("Processing order ID: {OrderId}", orderId);
         var order = await _ordersRepository.GetOrderById(orderId);
         var isConfirmed = await _orderConfirmationService.RequestOrderConfirmation(order!);
 
@@ -94,10 +103,20 @@ public class CreateOrderHandler
             // notify customer about cancellation
             // initiate refund
             await _ordersRepository.UpdateOrderStatus(order);
+            _logger.LogInformation(
+                "Order ID: {OrderId} was cancelled after confirmation failed",
+                orderId
+            );
             return;
         }
+        _logger.LogInformation("Order ID: {OrderId} confirmed, proceeding to preparation", orderId);
         order!.Status = OrderStatuses.preparing;
         await _ordersRepository.UpdateOrderStatus(order);
+        _logger.LogInformation(
+            "Order ID: {OrderId} status updated to {OrderStatus}",
+            orderId,
+            order.Status
+        );
         order.CreateDelivery();
         await _ordersRepository.AddDelivery(order.Id, order.Delivery!);
 

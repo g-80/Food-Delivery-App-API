@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,6 +13,7 @@ public class FoodPlacesController : ControllerBase
     private readonly GetNearbyFoodPlacesHandler _getNearbyFoodPlacesHandler;
     private readonly SearchFoodPlacesHandler _searchFoodPlacesHandler;
     private readonly IUserContextService _userContextService;
+    private readonly ILogger<FoodPlacesController> _logger;
 
     public FoodPlacesController(
         CreateFoodPlaceHandler createFoodPlaceHandler,
@@ -22,7 +22,8 @@ public class FoodPlacesController : ControllerBase
         GetFoodPlaceHandler getFoodPlaceHandler,
         GetNearbyFoodPlacesHandler getNearbyFoodPlacesHandler,
         SearchFoodPlacesHandler searchFoodPlacesHandler,
-        IUserContextService userContextService
+        IUserContextService userContextService,
+        ILogger<FoodPlacesController> logger
     )
     {
         _createFoodPlaceHandler = createFoodPlaceHandler;
@@ -32,6 +33,7 @@ public class FoodPlacesController : ControllerBase
         _getNearbyFoodPlacesHandler = getNearbyFoodPlacesHandler;
         _searchFoodPlacesHandler = searchFoodPlacesHandler;
         _userContextService = userContextService;
+        _logger = logger;
     }
 
     [HttpGet("nearby")]
@@ -41,6 +43,12 @@ public class FoodPlacesController : ControllerBase
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
+        _logger.LogInformation(
+            "Received request from {UserId} to get nearby food places from location: {Latitude}, {Longitude}",
+            _userContextService.GetUserIdFromJwt(),
+            query.Latitude,
+            query.Longitude
+        );
         IEnumerable<FoodPlaceDTO> result = await _getNearbyFoodPlacesHandler.Handle(query);
         return Ok(result);
     }
@@ -52,7 +60,13 @@ public class FoodPlacesController : ControllerBase
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
-
+        _logger.LogInformation(
+            "Received request from {UserId} to search food places with search query: {SearchQuery} from location: {Latitude}, {Longitude}",
+            _userContextService.GetUserIdFromJwt(),
+            query.SearchQuery,
+            query.Latitude,
+            query.Longitude
+        );
         IEnumerable<FoodPlaceDTO> result = await _searchFoodPlacesHandler.Handle(query);
         return Ok(result);
     }
@@ -60,6 +74,11 @@ public class FoodPlacesController : ControllerBase
     [HttpGet("{id:int:min(1)}")]
     public async Task<IActionResult> GetFoodPlace([FromRoute] int id)
     {
+        _logger.LogInformation(
+            "Received request to get food place with ID: {FoodPlaceId} from {CustomerId}",
+            id,
+            _userContextService.GetUserIdFromJwt()
+        );
         FoodPlaceDTO? result = await _getFoodPlaceHandler.Handle(id);
         if (result == null)
         {
@@ -76,6 +95,10 @@ public class FoodPlacesController : ControllerBase
             return BadRequest(ModelState);
 
         int userId = _userContextService.GetUserIdFromJwt();
+        _logger.LogInformation(
+            "Received request to create food place for user ID: {UserId}",
+            userId
+        );
         var res = await _createFoodPlaceHandler.Handle(req, userId);
         return Ok(res);
     }
@@ -88,6 +111,14 @@ public class FoodPlacesController : ControllerBase
             return BadRequest(ModelState);
 
         int userId = _userContextService.GetUserIdFromJwt();
+        using var scope = _logger.BeginScope(
+            "CorrelationId: {CorrelationId}",
+            HttpContext.TraceIdentifier
+        );
+        _logger.LogInformation(
+            "Received request to create item for food place with user ID: {UserId}",
+            userId
+        );
         await _createItemHandler.Handle(req, userId);
         return Ok();
     }
@@ -100,6 +131,15 @@ public class FoodPlacesController : ControllerBase
             return BadRequest(ModelState);
 
         int userId = _userContextService.GetUserIdFromJwt();
+        using var scope = _logger.BeginScope(
+            "CorrelationId: {CorrelationId}",
+            HttpContext.TraceIdentifier
+        );
+        _logger.LogInformation(
+            "Received request to update item with ID: {ItemId} for food place with user ID: {UserId}",
+            userId,
+            req.Id
+        );
         await _updateItemHandler.Handle(req, userId);
         return Ok();
     }

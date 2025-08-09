@@ -6,16 +6,19 @@ public class SignUpUserHandler
     private readonly IUserRepository _userRepository;
     private readonly IAddressRepository _addressRepository;
     private readonly ICartRepository _cartRepository;
+    private readonly ILogger<SignUpUserHandler> _logger;
 
     public SignUpUserHandler(
         IUserRepository userRepository,
         IAddressRepository addressRepository,
-        ICartRepository cartRepository
+        ICartRepository cartRepository,
+        ILogger<SignUpUserHandler> logger
     )
     {
         _userRepository = userRepository;
         _addressRepository = addressRepository;
         _cartRepository = cartRepository;
+        _logger = logger;
     }
 
     public async Task<int?> Handle(SignUpUserCommand req)
@@ -51,6 +54,12 @@ public class SignUpUserHandler
             await _cartRepository.AddCart(userId);
         }
         scope.Complete();
+        _logger.LogInformation(
+            "User with ID: {UserId} and phone number {PhoneNumber} signed up successfully as {UserType}",
+            userId,
+            req.PhoneNumber,
+            user.UserType
+        );
 
         return userId;
     }

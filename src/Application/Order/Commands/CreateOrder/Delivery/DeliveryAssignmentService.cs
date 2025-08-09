@@ -13,6 +13,7 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
     private readonly TimeSpan _offerTimeout = TimeSpan.FromSeconds(30);
     private readonly int _maxAssignmentAttempts = 3;
     private readonly int _defaultDistance = 1500;
+    private readonly ILogger<DeliveryAssignmentService> _logger;
 
     public DeliveryAssignmentService(
         IDriverRepository driverRepository,
@@ -21,7 +22,8 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
         JourneyCalculationService journeyCalculationService,
         IOrderRepository orderRepository,
         IHubContext<DriverHub> hubContext,
-        DeliveriesAssignments deliveriesAssignments
+        DeliveriesAssignments deliveriesAssignments,
+        ILogger<DeliveryAssignmentService> logger
     )
     {
         _driverRepository = driverRepository;
@@ -31,10 +33,12 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
         _journeryCalcService = journeyCalculationService;
         _hubContext = hubContext;
         _deliveriesAssignments = deliveriesAssignments;
+        _logger = logger;
     }
 
     public async Task InitiateDeliveryAssignment(Order order)
     {
+        _logger.LogInformation("Initiating delivery assignment for order ID: {OrderId}", order.Id);
         var job = _deliveriesAssignments.GetOrCreateAssignmentJob(order.Id);
         job.CurrentAttempt++;
 
@@ -47,8 +51,11 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
 
         if (!nearbyDrivers.Any())
         {
-            Console.WriteLine(
-                $"No drivers available nearby food place id {foodPlace.Id} for order {order.Id}. Scheduling retry."
+            _logger.LogWarning(
+                "No available drivers found nearby for food place ID: {FoodPlaceId} for order ID: {OrderId}. Scheduling retry attempt {Attempt}.",
+                foodPlace.Id,
+                order.Id,
+                job.CurrentAttempt + 1
             );
             await ScheduleRetryAttempt(job, order);
             return;
@@ -73,8 +80,10 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
 
         if (job.AssignedDriverId == 0)
         {
-            Console.WriteLine(
-                $"No driver accepted the offer for order {job.OrderId}. Scheduling retry."
+            _logger.LogWarning(
+                "No driver accepted the delivery offer for order ID: {OrderId}. Scheduling retry attempt {Attempt}.",
+                job.OrderId,
+                job.CurrentAttempt + 1
             );
             await ScheduleRetryAttempt(job, order);
         }
@@ -90,8 +99,9 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
         else
         {
             _deliveriesAssignments.RemoveAssignmentJob(job.OrderId);
-            Console.WriteLine(
-                $"Max assignment attempts reached for order {job.OrderId}. Could not assign a driver."
+            _logger.LogError(
+                "Max assignment attempts reached for order ID: {OrderId}. Could not assign a driver.",
+                job.OrderId
             );
             // Handle the case where no driver could be assigned
         }
@@ -116,7 +126,18 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
         {
             try
             {
+                _logger.LogInformation(
+                    "Delivery offer sent to driver {DriverId} for order {OrderId}. Waiting for a response with timeout of {Timeout} seconds.",
+                    driver.Id,
+                    job.OrderId,
+                    _offerTimeout
+                );
                 await Task.Delay(_offerTimeout, cts.Token);
+                _logger.LogInformation(
+                    "Delivery offer to driver {DriverId} for order {OrderId} timed out. Cancelling offer.",
+                    driver.Id,
+                    job.OrderId
+                );
 
                 // if-check in case of a race condition
                 if (!cts.IsCancellationRequested)
@@ -138,6 +159,11 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
             return;
         }
 
+        _logger.LogInformation(
+            "Cancelling delivery offer for driver {DriverId} for order {OrderId}.",
+            driver.Id,
+            job.OrderId
+        );
         job.PendingOffers.TryRemove(driver.Id, out _);
 
         var connection = _hubContext.Clients.User(driver.Id.ToString());
@@ -159,6 +185,11 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
 
         job.AssignedDriverId = driverId;
 
+        _logger.LogInformation(
+            "Driver {DriverId} accepted delivery offer for order ID: {OrderId}. Cancelling pending offers for other drivers.",
+            driverId,
+            orderId
+        );
         CancelAllPendingOffers(job);
 
         var driver = await _driverRepository.GetDriverById(driverId);

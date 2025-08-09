@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,6 +13,7 @@ public class OrdersController : ControllerBase
     private readonly UpdateOrderStatusHandler _updateOrderStatusHandler;
     private readonly IOrderConfirmationService _orderConfirmationService;
     private readonly IUserContextService _userContextService;
+    private readonly ILogger<OrdersController> _logger;
 
     public OrdersController(
         GetOrderHandler getOrderHandler,
@@ -22,7 +22,8 @@ public class OrdersController : ControllerBase
         CancelOrderHandler cancelOrderHandler,
         UpdateOrderStatusHandler updateOrderStatusHandler,
         IOrderConfirmationService orderConfirmationService,
-        IUserContextService userContextService
+        IUserContextService userContextService,
+        ILogger<OrdersController> logger
     )
     {
         _getOrderHandler = getOrderHandler;
@@ -32,6 +33,7 @@ public class OrdersController : ControllerBase
         _updateOrderStatusHandler = updateOrderStatusHandler;
         _orderConfirmationService = orderConfirmationService;
         _userContextService = userContextService;
+        _logger = logger;
     }
 
     [Authorize(Roles = nameof(UserTypes.customer))]
@@ -42,6 +44,14 @@ public class OrdersController : ControllerBase
             return BadRequest(ModelState);
 
         var customerId = _userContextService.GetUserIdFromJwt();
+        using var scope = _logger.BeginScope(
+            "CorrelationId: {CorrelationId}",
+            HttpContext.TraceIdentifier
+        );
+        _logger.LogInformation(
+            "Received request to create order for customer ID: {CustomerId}",
+            customerId
+        );
         var orderId = await _createOrderHandler.Handle(request, customerId);
 
         return Ok(new { orderId });
@@ -58,9 +68,14 @@ public class OrdersController : ControllerBase
             return BadRequest(ModelState);
 
         var userId = _userContextService.GetUserIdFromJwt();
+        _logger.LogInformation(
+            "Received request to cancel order ID: {OrderId} from user ID: {UserId}",
+            orderId,
+            userId
+        );
         bool success = await _cancelOrderHandler.Handle(req, userId, orderId);
         if (!success)
-            return BadRequest();
+            return Unauthorized();
 
         return Ok();
     }
@@ -96,6 +111,11 @@ public class OrdersController : ControllerBase
             return BadRequest(ModelState);
 
         var userId = _userContextService.GetUserIdFromJwt();
+        _logger.LogInformation(
+            "Received request to update status to {OrderStatus} for order ID: {OrderId}",
+            orderId,
+            req.Status
+        );
         bool success = await _updateOrderStatusHandler.Handle(req, userId, orderId);
         if (!success)
             return Unauthorized();
@@ -115,10 +135,12 @@ public class OrdersController : ControllerBase
 
         if (request.Confirmed)
         {
+            _logger.LogInformation("Received confirmation for order ID: {OrderId}", orderId);
             _orderConfirmationService.ConfirmOrder(orderId);
         }
         else
         {
+            _logger.LogInformation("Received rejection for order ID: {OrderId}", orderId);
             _orderConfirmationService.RejectOrder(orderId);
         }
 

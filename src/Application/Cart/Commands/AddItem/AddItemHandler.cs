@@ -2,11 +2,17 @@ public class AddItemHandler
 {
     private readonly ICartRepository _cartRepo;
     private readonly IFoodPlaceRepository _foodPlaceRepo;
+    private readonly ILogger<AddItemHandler> _logger;
 
-    public AddItemHandler(ICartRepository cartRepo, IFoodPlaceRepository foodPlaceRepo)
+    public AddItemHandler(
+        ICartRepository cartRepo,
+        IFoodPlaceRepository foodPlaceRepo,
+        ILogger<AddItemHandler> logger
+    )
     {
         _cartRepo = cartRepo;
         _foodPlaceRepo = foodPlaceRepo;
+        _logger = logger;
     }
 
     public async Task Handle(AddItemCommand req, int customerId)
@@ -33,6 +39,11 @@ public class AddItemHandler
         if (cart.IsModified)
         {
             await _cartRepo.UpdateCart(cart);
+            _logger.LogInformation(
+                "Item with ID: {ItemId} added to cart for customer ID: {CustomerId}.",
+                req.ItemId,
+                customerId
+            );
         }
     }
 }

@@ -1,10 +1,15 @@
 public class UpdateItemHandler
 {
     private readonly IFoodPlaceRepository _foodPlaceRepository;
+    private readonly ILogger<UpdateItemHandler> _logger;
 
-    public UpdateItemHandler(IFoodPlaceRepository foodPlaceRepository)
+    public UpdateItemHandler(
+        IFoodPlaceRepository foodPlaceRepository,
+        ILogger<UpdateItemHandler> logger
+    )
     {
         _foodPlaceRepository = foodPlaceRepository;
+        _logger = logger;
     }
 
     public async Task Handle(UpdateItemCommand req, int userId)
@@ -12,6 +17,7 @@ public class UpdateItemHandler
         var foodPlace = await _foodPlaceRepository.GetFoodPlaceByUserId(userId);
         if (foodPlace == null)
         {
+            _logger.LogError("Food place not found for user ID: {UserId}", userId);
             throw new Exception("Food place not found");
         }
 
@@ -26,5 +32,11 @@ public class UpdateItemHandler
 
         foodPlace.UpdateItem(item);
         await _foodPlaceRepository.UpdateFoodPlaceItem(item);
+        _logger.LogInformation(
+            "Item {ItemId} updated successfully for food place ID: {FoodPlaceId} by user ID: {UserId}",
+            item.Id,
+            foodPlace.Id,
+            userId
+        );
     }
 }
