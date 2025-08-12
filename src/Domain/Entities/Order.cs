@@ -1,6 +1,6 @@
 public class Order
 {
-    public int Id { get; init; }
+    public int Id { get; set; }
     public required int CustomerId { get; init; }
     public required int FoodPlaceId { get; init; }
     public required int DeliveryAddressId { get; init; }

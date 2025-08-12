@@ -28,7 +28,7 @@ public class CartRepository : BaseRepository, ICartRepository
         }
     }
 
-    public async Task<Cart?> GetCartByCustomerId(int customerId)
+    public async Task<Cart> GetCartByCustomerId(int customerId)
     {
         var parameters = new { CustomerId = customerId };
 

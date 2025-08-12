@@ -11,27 +11,23 @@ public class GetCartHandler
 
     public async Task<CartDTO?> Handle(int customerId)
     {
-        var cart =
-            await _cartRepository.GetCartByCustomerId(customerId)
-            ?? throw new Exception($"Cart for customer ID: {customerId} not found.");
+        var cart = await _cartRepository.GetCartByCustomerId(customerId);
 
         if (!cart.Items.Any())
         {
             return null;
         }
 
-        var foodPlace =
-            await _foodPlaceRepository.GetFoodPlaceById(cart.FoodPlaceId)
-            ?? throw new Exception($"Food place with ID: {cart.FoodPlaceId} not found.");
+        var foodPlace = await _foodPlaceRepository.GetFoodPlaceById(cart.FoodPlaceId);
 
         return new CartDTO
         {
-            FoodPlaceId = foodPlace.Id,
+            FoodPlaceId = foodPlace!.Id,
             FoodPlaceName = foodPlace.Name,
             Items = cart.Items.Select(item => new CartItemDTO
             {
                 ItemId = item.ItemId,
-                ItemName = foodPlace.Items.FirstOrDefault(fi => fi.Id == item.ItemId)!.Name,
+                ItemName = foodPlace.Items.First(fi => fi.Id == item.ItemId).Name,
                 Quantity = item.Quantity,
                 UnitPrice = item.UnitPrice,
                 Subtotal = item.Subtotal,

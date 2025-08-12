@@ -35,29 +35,27 @@ public class CreateOrderHandler
             City = command.DeliveryAddress.City,
             Postcode = command.DeliveryAddress.Postcode,
         };
-        var orderId = await CreateOrder(customerId, address);
+        var order = await CreateOrder(customerId, address);
 
-        BackgroundJob.Enqueue(() => ProcessOrderAsync(orderId));
-        return orderId;
+        BackgroundJob.Enqueue(() => ProcessOrderAsync(order));
+        return order.Id;
     }
 
-    private async Task<int> CreateOrder(int customerId, Address deliveryAddress)
+    private async Task<Order> CreateOrder(int customerId, Address deliveryAddress)
     {
         var addressId = await _addressRepository.AddAddress(deliveryAddress, customerId);
 
-        Cart cart =
-            await _cartRepository.GetCartByCustomerId(customerId)
-            ?? throw new CartNotFoundException();
+        Cart cart = await _cartRepository.GetCartByCustomerId(customerId);
 
         if (!cart.Items.Any())
             throw new InvalidOperationException("Cart is empty");
 
         var cartPricing = cart.Pricing;
 
-        int orderId;
+        Order? order = null;
         using (var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
         {
-            var order = new Order
+            order = new Order
             {
                 CustomerId = customerId,
                 FoodPlaceId = cart.FoodPlaceId,
@@ -78,43 +76,45 @@ public class CreateOrderHandler
                 Total = cartPricing.Total,
                 CreatedAt = DateTime.UtcNow,
             };
-            orderId = await _ordersRepository.AddOrder(order);
+            order.Id = await _ordersRepository.AddOrder(order);
             cart.ClearCart();
             await _cartRepository.UpdateCart(cart);
             scope.Complete();
         }
         _logger.LogInformation(
             "Order created with ID: {OrderId} for customer ID: {CustomerId}",
-            orderId,
+            order.Id,
             customerId
         );
-        return orderId;
+        return order;
     }
 
-    public async Task ProcessOrderAsync(int orderId)
+    public async Task ProcessOrderAsync(Order order)
     {
-        _logger.LogInformation("Processing order ID: {OrderId}", orderId);
-        var order = await _ordersRepository.GetOrderById(orderId);
-        var isConfirmed = await _orderConfirmationService.RequestOrderConfirmation(order!);
+        _logger.LogInformation("Processing order ID: {OrderId}", order.Id);
+        var isConfirmed = await _orderConfirmationService.RequestOrderConfirmation(order);
 
         if (!isConfirmed)
         {
-            order!.Status = OrderStatuses.cancelled;
+            order.Status = OrderStatuses.cancelled;
             // notify customer about cancellation
             // initiate refund
             await _ordersRepository.UpdateOrderStatus(order);
             _logger.LogInformation(
                 "Order ID: {OrderId} was cancelled after confirmation failed",
-                orderId
+                order.Id
             );
             return;
         }
-        _logger.LogInformation("Order ID: {OrderId} confirmed, proceeding to preparation", orderId);
-        order!.Status = OrderStatuses.preparing;
+        _logger.LogInformation(
+            "Order ID: {OrderId} confirmed, proceeding to preparation",
+            order.Id
+        );
+        order.Status = OrderStatuses.preparing;
         await _ordersRepository.UpdateOrderStatus(order);
         _logger.LogInformation(
             "Order ID: {OrderId} status updated to {OrderStatus}",
-            orderId,
+            order.Id,
             order.Status
         );
         order.CreateDelivery();

@@ -11,9 +11,7 @@ public class RemoveItemHandler
 
     public async Task Handle(int itemId, int customerId)
     {
-        var cart =
-            await _cartRepo.GetCartByCustomerId(customerId)
-            ?? throw new Exception($"Cart for customer ID: {customerId} not found.");
+        var cart = await _cartRepo.GetCartByCustomerId(customerId);
 
         cart.RemoveItem(itemId);
 

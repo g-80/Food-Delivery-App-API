@@ -13,7 +13,9 @@ public class DeliveriesAssignments
     {
         if (!_activeAssignments.TryGetValue(orderId, out var job))
         {
-            throw new Exception($"Delivery assignment job for order {orderId} not found");
+            throw new InvalidOperationException(
+                $"Delivery assignment job for order {orderId} not found"
+            );
         }
         return job;
     }

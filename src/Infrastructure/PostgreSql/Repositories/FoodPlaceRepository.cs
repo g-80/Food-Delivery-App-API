@@ -174,7 +174,7 @@ public class FoodPlaceRepository : BaseRepository, IFoodPlaceRepository
         };
     }
 
-    public async Task<FoodPlace?> GetFoodPlaceByUserId(int userId)
+    public async Task<FoodPlace> GetFoodPlaceByUserId(int userId)
     {
         var parameters = new { UserId = userId };
         const string sql =
@@ -231,7 +231,7 @@ public class FoodPlaceRepository : BaseRepository, IFoodPlaceRepository
         };
     }
 
-    public async Task<int?> GetFoodPlaceUserId(int foodPlaceId)
+    public async Task<int> GetFoodPlaceUserId(int foodPlaceId)
     {
         var parameters = new { FoodPlaceId = foodPlaceId };
         const string sql =
@@ -240,7 +240,7 @@ public class FoodPlaceRepository : BaseRepository, IFoodPlaceRepository
 
         using (var connection = new NpgsqlConnection(_connectionString))
         {
-            return await connection.QuerySingleOrDefaultAsync<int?>(sql, parameters);
+            return await connection.QuerySingleAsync<int>(sql, parameters);
         }
     }
 

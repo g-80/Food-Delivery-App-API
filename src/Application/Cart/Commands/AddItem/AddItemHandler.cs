@@ -17,12 +17,19 @@ public class AddItemHandler
 
     public async Task Handle(AddItemCommand req, int customerId)
     {
-        var cart =
-            await _cartRepo.GetCartByCustomerId(customerId)
-            ?? throw new Exception($"Cart for customer ID: {customerId} not found.");
+        var cart = await _cartRepo.GetCartByCustomerId(customerId);
 
         var foodPlace = await _foodPlaceRepo.GetFoodPlaceByItemId(req.ItemId);
-        var item = foodPlace!.Items.FirstOrDefault(i => i.Id == req.ItemId);
+        if (foodPlace == null)
+        {
+            _logger.LogError(
+                "Food place not found for item ID: {ItemId} for customer ID: {CustomerId}.",
+                req.ItemId,
+                customerId
+            );
+            throw new InvalidOperationException($"Food place not found for item ID: {req.ItemId}");
+        }
+        var item = foodPlace.Items.FirstOrDefault(i => i.Id == req.ItemId);
 
         cart.AddItem(
             new CartItem

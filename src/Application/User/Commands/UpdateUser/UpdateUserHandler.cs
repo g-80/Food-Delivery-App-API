@@ -14,7 +14,7 @@ public class UpdateUserHandler
         var user = await _userRepository.GetUserById(userId);
         if (user == null)
         {
-            throw new Exception($"User with ID {userId} not found.");
+            throw new InvalidOperationException($"User with ID {userId} not found.");
         }
 
         var passwordHasher = new PasswordHasher<User>();

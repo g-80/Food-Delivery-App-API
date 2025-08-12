@@ -14,9 +14,7 @@ public class UpdateItemQuantityHandler
 
     public async Task Handle(UpdateItemQuantityCommand req, int customerId)
     {
-        var cart =
-            await _cartRepo.GetCartByCustomerId(customerId)
-            ?? throw new Exception($"Cart for customer ID: {customerId} not found.");
+        var cart = await _cartRepo.GetCartByCustomerId(customerId);
 
         if (req.Quantity == 0)
         {

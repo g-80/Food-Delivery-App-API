@@ -17,7 +17,7 @@ public class UpdateOrderStatusHandler
         var order = await _orderRepository.GetOrderById(orderId);
         if (order == null)
         {
-            throw new Exception("Order not found");
+            throw new InvalidOperationException("Order not found");
         }
 
         var foodPlaceUserId = await _foodPlaceRepository.GetFoodPlaceUserId(order.FoodPlaceId);

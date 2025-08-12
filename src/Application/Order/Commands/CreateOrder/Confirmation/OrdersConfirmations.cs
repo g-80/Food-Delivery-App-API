@@ -6,7 +6,9 @@ public class OrdersConfirmations
     {
         if (_activeConfirmations.ContainsKey(orderId))
         {
-            throw new Exception($"CancellationTokenSource for order {orderId} already exists");
+            throw new InvalidOperationException(
+                $"CancellationTokenSource for order {orderId} already exists"
+            );
         }
         _activeConfirmations[orderId] = cts;
     }
@@ -15,7 +17,9 @@ public class OrdersConfirmations
     {
         if (!_activeConfirmations.TryGetValue(orderId, out var cts))
         {
-            throw new Exception($"CancellationTokenSource for order {orderId} not found");
+            throw new InvalidOperationException(
+                $"CancellationTokenSource for order {orderId} not found"
+            );
         }
         return cts;
     }

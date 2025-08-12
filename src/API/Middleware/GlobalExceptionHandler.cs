@@ -3,15 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 
 public class GlobalExceptionHandler : IExceptionHandler
 {
-    private readonly IWebHostEnvironment _environment;
     private readonly ILogger<GlobalExceptionHandler> _logger;
 
-    public GlobalExceptionHandler(
-        IWebHostEnvironment environment,
-        ILogger<GlobalExceptionHandler> logger
-    )
+    public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger)
     {
-        _environment = environment;
         _logger = logger;
     }
 
@@ -28,19 +23,13 @@ public class GlobalExceptionHandler : IExceptionHandler
         var (statusCode, detailedMessage) = exception switch
         {
             InvalidOperationException ex => (StatusCodes.Status400BadRequest, ex.Message),
-            CartNotFoundException ex => (StatusCodes.Status500InternalServerError, ex.Message),
-            _ => (StatusCodes.Status500InternalServerError, "An unexpected error occurred."),
+            _ => (StatusCodes.Status500InternalServerError, exception.Message),
         };
 
         string clientMessage =
-            statusCode == StatusCodes.Status500InternalServerError
+            statusCode == StatusCodes.Status400BadRequest
                 ? detailedMessage
                 : "An unexpected error occurred.";
-
-        if (_environment.IsDevelopment())
-        {
-            clientMessage = detailedMessage;
-        }
 
         httpContext.Response.StatusCode = statusCode;
 

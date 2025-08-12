@@ -52,15 +52,19 @@ public class Cart
         }
         else
         {
-            throw new Exception($"Item with ID: {itemId} not found in cart {Id}");
+            throw new InvalidOperationException($"Item with ID: {itemId} not found in cart {Id}");
         }
     }
 
     public void UpdateItemQuantity(int itemId, int quantity)
     {
         var item = _items.FirstOrDefault(i => i.ItemId == itemId);
-        if (item != null && quantity != item.Quantity)
+        if (item != null)
         {
+            if (item.Quantity == quantity)
+            {
+                return;
+            }
             item.Quantity = quantity;
             IsModified = true;
             RecalculatePricing();
@@ -68,7 +72,7 @@ public class Cart
         }
         else
         {
-            throw new Exception($"Item with ID: {itemId} not found in cart {Id}");
+            throw new InvalidOperationException($"Item with ID: {itemId} not found in cart {Id}");
         }
     }
 

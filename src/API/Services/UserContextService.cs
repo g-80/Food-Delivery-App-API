@@ -12,7 +12,7 @@ public class UserContextService : IUserContextService
     public int GetUserIdFromJwt()
     {
         return int.Parse(
-            _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value!
+            _httpContextAccessor.HttpContext!.User.FindFirst(ClaimTypes.NameIdentifier)!.Value!
         );
     }
 }

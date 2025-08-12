@@ -193,7 +193,12 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
         CancelAllPendingOffers(job);
 
         var driver = await _driverRepository.GetDriverById(driverId);
-        driver!.Status = DriverStatuses.delivering;
+        if (driver == null)
+        {
+            _logger.LogError("Driver with ID {DriverId} not found.", driverId);
+            throw new InvalidOperationException($"Driver with ID {driverId} not found.");
+        }
+        driver.Status = DriverStatuses.delivering;
         await _driverRepository.UpdateDriverStatus(driver);
 
         var order = await _orderRepository.GetOrderById(orderId);
@@ -237,10 +242,10 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
     {
         var foodPlaceAddress =
             await _addressRepository.GetAddressById(foodPlace.AddressId)
-            ?? throw new Exception("Foodplace address not found");
+            ?? throw new InvalidOperationException("Foodplace address not found");
         var deliveryDestinationAddress =
             await _addressRepository.GetAddressById(deliveryAddressId)
-            ?? throw new Exception("Delivery destination address not found");
+            ?? throw new InvalidOperationException("Delivery destination address not found");
 
         return new DeliveryOfferDTO
         {

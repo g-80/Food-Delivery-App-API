@@ -15,11 +15,6 @@ public class CreateItemHandler
     public async Task Handle(CreateItemCommand req, int userId)
     {
         var foodPlace = await _foodPlaceRepository.GetFoodPlaceByUserId(userId);
-        if (foodPlace == null)
-        {
-            _logger.LogError("Food place not found for user ID: {UserId}", userId);
-            throw new Exception("Food place not found");
-        }
 
         var item = new FoodPlaceItem
         {

@@ -12,7 +12,7 @@ public class UpsertLocationHandler
         var driver = await _driverRepository.GetDriverById(driverId);
         if (driver == null)
         {
-            throw new Exception($"Driver with ID: {driverId} not found.");
+            throw new InvalidOperationException($"Driver with ID: {driverId} not found.");
         }
 
         driver.Location = location;

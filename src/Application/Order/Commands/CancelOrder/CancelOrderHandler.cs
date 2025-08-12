@@ -20,7 +20,7 @@ public class CancelOrderHandler
         var order = await _orderRepository.GetOrderById(orderId);
         if (order == null)
         {
-            throw new Exception("Order not found");
+            throw new InvalidOperationException("Order not found");
         }
 
         var user = await _userRepository.GetUserById(userId);

@@ -12,7 +12,7 @@ public class GetFoodPlaceHandler
         var foodPlace = await _foodPlaceRepository.GetFoodPlaceById(id);
         if (foodPlace == null)
         {
-            throw new Exception($"Food place with ID {id} not found.");
+            throw new InvalidOperationException($"Food place with ID {id} not found.");
         }
 
         return new FoodPlaceDTO
