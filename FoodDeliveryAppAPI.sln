@@ -5,8 +5,6 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoodDeliveryAppAPI", "src\FoodDeliveryAppAPI.csproj", "{C807FCEC-7DDE-4DA3-84E1-938D841790D1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntegrationTests", "tests\IntegrationTests\IntegrationTests.csproj", "{97CAAE31-2369-4C1B-BDA6-B41224134B3C}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "tests\UnitTests\UnitTests.csproj", "{93238DE0-1FF7-479D-A86D-75E185A53AF8}"
 EndProject
 Global
