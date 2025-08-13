@@ -30,7 +30,7 @@ namespace FoodDeliveryAppAPI.Application
             builder.Services.AddSingleton<OrdersConfirmations>();
 
             builder.Services.AddScoped<IDeliveryAssignmentService, DeliveryAssignmentService>();
-            builder.Services.AddSingleton<DeliveriesAssignments>();
+            builder.Services.AddSingleton<IDeliveriesAssignments, DeliveriesAssignments>();
             builder.Services.AddTransient<JourneyCalculationService>();
 
             builder.Services.AddScoped<LogInUserHandler>();

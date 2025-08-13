@@ -4,10 +4,12 @@ using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Moq;
 
+namespace FoodDeliveryAppAPI.Tests.UnitTests.UsersTests;
+
 public class TokenServiceTests
 {
-    private readonly Mock<IUsersRepository> _mockUsersRepo;
-    private readonly Mock<IRefreshTokensRepository> _mockRefreshTokensRepo;
+    private readonly Mock<IUserRepository> _mockUsersRepo;
+    private readonly Mock<IRefreshTokenRepository> _mockRefreshTokensRepo;
     private readonly TokenService _tokenService;
 
     private const string TestJwtKey = "very_secure_key_to_use_for_jwt_tests";
@@ -21,13 +23,12 @@ public class TokenServiceTests
         Password = "Very long hash",
         PhoneNumber = "07123123123",
         UserType = UserTypes.customer,
-        CreatedAt = DateTime.UtcNow,
     };
 
     public TokenServiceTests()
     {
-        _mockUsersRepo = new Mock<IUsersRepository>();
-        _mockRefreshTokensRepo = new Mock<IRefreshTokensRepository>();
+        _mockUsersRepo = new Mock<IUserRepository>();
+        _mockRefreshTokensRepo = new Mock<IRefreshTokenRepository>();
 
         var inMemorySettings = new Dictionary<string, string?>
         {
@@ -52,11 +53,14 @@ public class TokenServiceTests
     {
         // Arrange
         _mockRefreshTokensRepo
-            .Setup(r => r.CreateRefreshToken(It.IsAny<RefreshTokenDTO>()))
+            .Setup(r => r.AddRefreshToken(It.IsAny<RefreshToken>()))
             .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _tokenService.CreateTokenResponse(_testUser);
+        var result = await _tokenService.GenerateTokens(
+            _testUser.Id.ToString(),
+            _testUser.UserType.ToString()
+        );
 
         // Assert
         result.Should().NotBeNull();
@@ -78,12 +82,12 @@ public class TokenServiceTests
         roleClaim!.Value.Should().Be(_testUser.UserType.ToString());
 
         _mockRefreshTokensRepo.Verify(
-            r =>
-                r.CreateRefreshToken(
-                    It.Is<RefreshTokenDTO>(dto =>
-                        dto.UserId == _testUser.Id
-                        && !string.IsNullOrEmpty(dto.Token)
-                        && dto.ExpiresAt > DateTime.UtcNow
+            repo =>
+                repo.AddRefreshToken(
+                    It.Is<RefreshToken>(refreshToken =>
+                        refreshToken.UserId == _testUser.Id
+                        && !string.IsNullOrEmpty(refreshToken.Token)
+                        && refreshToken.ExpiresAt > DateTime.UtcNow
                     )
                 ),
             Times.Once
@@ -95,7 +99,7 @@ public class TokenServiceTests
     {
         // Arrange
         var testRefreshToken = "valid_refresh_token";
-        var refreshRequest = new TokenRefreshRequest
+        var renewRequest = new RenewAccessTokenCommand
         {
             UserId = _testUser.Id,
             RefreshToken = testRefreshToken,
@@ -108,19 +112,19 @@ public class TokenServiceTests
             ExpiresAt = DateTime.UtcNow.AddDays(7),
         };
 
-        _mockUsersRepo.Setup(r => r.GetUserById(_testUser.Id)).ReturnsAsync(_testUser);
+        _mockUsersRepo.Setup(repo => repo.GetUserById(_testUser.Id)).ReturnsAsync(_testUser);
         _mockRefreshTokensRepo
-            .Setup(r => r.GetRefreshTokenByUserId(_testUser.Id))
+            .Setup(repo => repo.GetRefreshTokenByUserId(_testUser.Id))
             .ReturnsAsync(savedToken);
         _mockRefreshTokensRepo
-            .Setup(r => r.DeleteRefreshToken(_testUser.Id))
+            .Setup(repo => repo.DeleteRefreshToken(_testUser.Id))
             .Returns(Task.CompletedTask);
         _mockRefreshTokensRepo
-            .Setup(r => r.CreateRefreshToken(It.IsAny<RefreshTokenDTO>()))
+            .Setup(repo => repo.AddRefreshToken(It.IsAny<RefreshToken>()))
             .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _tokenService.RefreshTokenAsync(refreshRequest);
+        var result = await _tokenService.RenewAccessToken(renewRequest);
 
         // Assert
         result.Should().NotBeNull();
@@ -129,10 +133,11 @@ public class TokenServiceTests
 
         _mockRefreshTokensRepo.Verify(r => r.DeleteRefreshToken(_testUser.Id), Times.Once);
         _mockRefreshTokensRepo.Verify(
-            r =>
-                r.CreateRefreshToken(
-                    It.Is<RefreshTokenDTO>(dto =>
-                        dto.UserId == _testUser.Id && !string.IsNullOrEmpty(dto.Token)
+            repo =>
+                repo.AddRefreshToken(
+                    It.Is<RefreshToken>(refreshToken =>
+                        refreshToken.UserId == _testUser.Id
+                        && !string.IsNullOrEmpty(refreshToken.Token)
                     )
                 ),
             Times.Once
@@ -143,23 +148,23 @@ public class TokenServiceTests
     public async Task RefreshToken_WithInvalidUserId_ShouldReturnNull()
     {
         // Arrange
-        var refreshRequest = new TokenRefreshRequest
+        var renewRequest = new RenewAccessTokenCommand
         {
             UserId = 999999,
             RefreshToken = "some_token",
         };
 
-        _mockUsersRepo.Setup(r => r.GetUserById(refreshRequest.UserId)).ReturnsAsync((User)null);
+        _mockUsersRepo.Setup(r => r.GetUserById(renewRequest.UserId)).ReturnsAsync((User)null);
 
         // Act
-        var result = await _tokenService.RefreshTokenAsync(refreshRequest);
+        var result = await _tokenService.RenewAccessToken(renewRequest);
 
         // Assert
         result.Should().BeNull();
 
         _mockRefreshTokensRepo.Verify(r => r.DeleteRefreshToken(It.IsAny<int>()), Times.Never);
         _mockRefreshTokensRepo.Verify(
-            r => r.CreateRefreshToken(It.IsAny<RefreshTokenDTO>()),
+            repo => repo.AddRefreshToken(It.IsAny<RefreshToken>()),
             Times.Never
         );
     }
@@ -168,7 +173,7 @@ public class TokenServiceTests
     public async Task RefreshToken_WithInvalidToken_ShouldReturnNull()
     {
         // Arrange
-        var refreshRequest = new TokenRefreshRequest
+        var renewRequest = new RenewAccessTokenCommand
         {
             UserId = _testUser.Id,
             RefreshToken = "invalid_token",
@@ -181,20 +186,23 @@ public class TokenServiceTests
             ExpiresAt = DateTime.UtcNow.AddDays(7),
         };
 
-        _mockUsersRepo.Setup(r => r.GetUserById(_testUser.Id)).ReturnsAsync(_testUser);
+        _mockUsersRepo.Setup(repo => repo.GetUserById(_testUser.Id)).ReturnsAsync(_testUser);
         _mockRefreshTokensRepo
-            .Setup(r => r.GetRefreshTokenByUserId(_testUser.Id))
+            .Setup(repo => repo.GetRefreshTokenByUserId(_testUser.Id))
             .ReturnsAsync(savedToken);
 
         // Act
-        var result = await _tokenService.RefreshTokenAsync(refreshRequest);
+        var result = await _tokenService.RenewAccessToken(renewRequest);
 
         // Assert
         result.Should().BeNull();
 
-        _mockRefreshTokensRepo.Verify(r => r.DeleteRefreshToken(It.IsAny<int>()), Times.Never);
         _mockRefreshTokensRepo.Verify(
-            r => r.CreateRefreshToken(It.IsAny<RefreshTokenDTO>()),
+            repo => repo.DeleteRefreshToken(It.IsAny<int>()),
+            Times.Never
+        );
+        _mockRefreshTokensRepo.Verify(
+            repo => repo.AddRefreshToken(It.IsAny<RefreshToken>()),
             Times.Never
         );
     }
@@ -204,7 +212,7 @@ public class TokenServiceTests
     {
         // Arrange
         var testRefreshToken = "expired_token";
-        var refreshRequest = new TokenRefreshRequest
+        var renewRequest = new RenewAccessTokenCommand
         {
             UserId = _testUser.Id,
             RefreshToken = testRefreshToken,
@@ -223,14 +231,17 @@ public class TokenServiceTests
             .ReturnsAsync(savedToken);
 
         // Act
-        var result = await _tokenService.RefreshTokenAsync(refreshRequest);
+        var result = await _tokenService.RenewAccessToken(renewRequest);
 
         // Assert
         result.Should().BeNull();
 
-        _mockRefreshTokensRepo.Verify(r => r.DeleteRefreshToken(It.IsAny<int>()), Times.Never);
         _mockRefreshTokensRepo.Verify(
-            r => r.CreateRefreshToken(It.IsAny<RefreshTokenDTO>()),
+            repo => repo.DeleteRefreshToken(It.IsAny<int>()),
+            Times.Never
+        );
+        _mockRefreshTokensRepo.Verify(
+            repo => repo.AddRefreshToken(It.IsAny<RefreshToken>()),
             Times.Never
         );
     }
@@ -239,26 +250,29 @@ public class TokenServiceTests
     public async Task RefreshToken_WithNonExistingToken_ShouldReturnNull()
     {
         // Arrange
-        var refreshRequest = new TokenRefreshRequest
+        var renewRequest = new RenewAccessTokenCommand
         {
             UserId = _testUser.Id,
             RefreshToken = "some_token",
         };
 
-        _mockUsersRepo.Setup(r => r.GetUserById(_testUser.Id)).ReturnsAsync(_testUser);
+        _mockUsersRepo.Setup(repo => repo.GetUserById(_testUser.Id)).ReturnsAsync(_testUser);
         _mockRefreshTokensRepo
-            .Setup(r => r.GetRefreshTokenByUserId(_testUser.Id))
+            .Setup(repo => repo.GetRefreshTokenByUserId(_testUser.Id))
             .ReturnsAsync((RefreshToken)null);
 
         // Act
-        var result = await _tokenService.RefreshTokenAsync(refreshRequest);
+        var result = await _tokenService.RenewAccessToken(renewRequest);
 
         // Assert
         result.Should().BeNull();
 
-        _mockRefreshTokensRepo.Verify(r => r.DeleteRefreshToken(It.IsAny<int>()), Times.Never);
         _mockRefreshTokensRepo.Verify(
-            r => r.CreateRefreshToken(It.IsAny<RefreshTokenDTO>()),
+            repo => repo.DeleteRefreshToken(It.IsAny<int>()),
+            Times.Never
+        );
+        _mockRefreshTokensRepo.Verify(
+            repo => repo.AddRefreshToken(It.IsAny<RefreshToken>()),
             Times.Never
         );
     }

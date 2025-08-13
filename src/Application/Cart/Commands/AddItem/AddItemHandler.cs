@@ -43,14 +43,11 @@ public class AddItemHandler
             foodPlace.Id
         );
 
-        if (cart.IsModified)
-        {
-            await _cartRepo.UpdateCart(cart);
-            _logger.LogInformation(
-                "Item with ID: {ItemId} added to cart for customer ID: {CustomerId}.",
-                req.ItemId,
-                customerId
-            );
-        }
+        await _cartRepo.UpdateCart(cart);
+        _logger.LogInformation(
+            "Item with ID: {ItemId} added to cart for customer ID: {CustomerId}.",
+            req.ItemId,
+            customerId
+        );
     }
 }

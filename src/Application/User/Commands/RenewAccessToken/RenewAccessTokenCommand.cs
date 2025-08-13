@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations;
 public class RenewAccessTokenCommand
 {
     [Required]
-    public int UserId { get; set; }
+    public required int UserId { get; init; }
 
     [Required]
-    public required string RefreshToken { get; set; }
+    public required string RefreshToken { get; init; }
 }

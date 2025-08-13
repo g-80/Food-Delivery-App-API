@@ -25,8 +25,9 @@ public class FoodPlace
         if (existingItem != null)
         {
             existingItem.Name = item.Name;
-            existingItem.Price = item.Price;
             existingItem.Description = item.Description;
+            existingItem.Price = item.Price;
+            existingItem.IsAvailable = item.IsAvailable;
         }
     }
 }

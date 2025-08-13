@@ -9,6 +9,7 @@ public class CreateOrderHandler
     private readonly IOrderConfirmationService _orderConfirmationService;
     private readonly IDeliveryAssignmentService _deliveryAssignmentService;
     private readonly ILogger<CreateOrderHandler> _logger;
+    private readonly IBackgroundJobClient _backgroundJobClient;
 
     public CreateOrderHandler(
         IAddressRepository addressRepository,
@@ -16,7 +17,8 @@ public class CreateOrderHandler
         IOrderRepository ordersRepository,
         IOrderConfirmationService orderConfirmationService,
         IDeliveryAssignmentService deliveryAssignmentService,
-        ILogger<CreateOrderHandler> logger
+        ILogger<CreateOrderHandler> logger,
+        IBackgroundJobClient backgroundJobClient
     )
     {
         _addressRepository = addressRepository;
@@ -25,6 +27,7 @@ public class CreateOrderHandler
         _orderConfirmationService = orderConfirmationService;
         _deliveryAssignmentService = deliveryAssignmentService;
         _logger = logger;
+        _backgroundJobClient = backgroundJobClient;
     }
 
     public async Task<int> Handle(CreateOrderCommand command, int customerId)
@@ -37,14 +40,12 @@ public class CreateOrderHandler
         };
         var order = await CreateOrder(customerId, address);
 
-        BackgroundJob.Enqueue(() => ProcessOrderAsync(order));
+        _backgroundJobClient.Enqueue(() => ProcessOrderAsync(order));
         return order.Id;
     }
 
     private async Task<Order> CreateOrder(int customerId, Address deliveryAddress)
     {
-        var addressId = await _addressRepository.AddAddress(deliveryAddress, customerId);
-
         Cart cart = await _cartRepository.GetCartByCustomerId(customerId);
 
         if (!cart.Items.Any())
@@ -55,6 +56,7 @@ public class CreateOrderHandler
         Order? order = null;
         using (var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
         {
+            var addressId = await _addressRepository.AddAddress(deliveryAddress, customerId);
             order = new Order
             {
                 CustomerId = customerId,

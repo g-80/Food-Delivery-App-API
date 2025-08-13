@@ -8,12 +8,13 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
     private readonly IOrderRepository _orderRepository;
     private readonly JourneyCalculationService _journeryCalcService;
     private readonly IHubContext<DriverHub> _hubContext;
-    private readonly DeliveriesAssignments _deliveriesAssignments;
+    private readonly IDeliveriesAssignments _deliveriesAssignments;
+    private readonly ILogger<DeliveryAssignmentService> _logger;
 
     private readonly TimeSpan _offerTimeout = TimeSpan.FromSeconds(30);
+    private readonly TimeSpan _retryTimeout = TimeSpan.FromSeconds(15);
     private readonly int _maxAssignmentAttempts = 3;
     private readonly int _defaultDistance = 1500;
-    private readonly ILogger<DeliveryAssignmentService> _logger;
 
     public DeliveryAssignmentService(
         IDriverRepository driverRepository,
@@ -22,7 +23,7 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
         JourneyCalculationService journeyCalculationService,
         IOrderRepository orderRepository,
         IHubContext<DriverHub> hubContext,
-        DeliveriesAssignments deliveriesAssignments,
+        IDeliveriesAssignments deliveriesAssignments,
         ILogger<DeliveryAssignmentService> logger
     )
     {
@@ -93,7 +94,7 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
     {
         if (job.CurrentAttempt < _maxAssignmentAttempts)
         {
-            await Task.Delay(TimeSpan.FromSeconds(15));
+            await Task.Delay(_retryTimeout);
             await InitiateDeliveryAssignment(order);
         }
         else

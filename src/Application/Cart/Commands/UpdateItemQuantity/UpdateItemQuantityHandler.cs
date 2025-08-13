@@ -28,6 +28,7 @@ public class UpdateItemQuantityHandler
         if (cart.IsModified)
         {
             await _cartRepo.UpdateCart(cart);
+            cart.IsModified = false;
             _logger.LogInformation(
                 "Item with ID: {ItemId} quantity updated to {Quantity} for customer ID: {CustomerId}.",
                 req.ItemId,

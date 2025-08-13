@@ -29,9 +29,12 @@ public class Cart
         }
         else
         {
+            if (FoodPlaceId == 0)
+            {
+                FoodPlaceId = fromFoodPlace;
+            }
             _items.Add(item);
         }
-        IsModified = true;
         RecalculatePricing();
         UpdateExpiry();
     }

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 public class OrderConfirmationService : IOrderConfirmationService
 {
     private readonly IHubContext<FoodPlaceHub> _hubContext;
-    private readonly OrdersConfirmations _ordersConfirmations;
+    private readonly IOrdersConfirmations _ordersConfirmations;
     private readonly IFoodPlaceRepository _foodPlaceRepository;
     private readonly IUserRepository _userRepository;
     private readonly TimeSpan _timeout = TimeSpan.FromSeconds(60);
@@ -11,7 +11,7 @@ public class OrderConfirmationService : IOrderConfirmationService
 
     public OrderConfirmationService(
         IHubContext<FoodPlaceHub> hubContext,
-        OrdersConfirmations ordersConfirmations,
+        IOrdersConfirmations ordersConfirmations,
         IFoodPlaceRepository foodPlaceRepository,
         IUserRepository userRepository,
         ILogger<OrderConfirmationService> logger

@@ -2,9 +2,9 @@ using Dapper;
 using Microsoft.Extensions.Options;
 using Npgsql;
 
-public class RefreshTokensRepository : BaseRepository, IRefreshTokensRepository
+public class RefreshTokenRepository : BaseRepository, IRefreshTokenRepository
 {
-    public RefreshTokensRepository(IOptions<DatabaseOptions> options)
+    public RefreshTokenRepository(IOptions<DatabaseOptions> options)
         : base(options.Value.ConnectionString) { }
 
     public async Task<RefreshToken?> GetRefreshTokenByUserId(int userId)
@@ -23,7 +23,7 @@ public class RefreshTokensRepository : BaseRepository, IRefreshTokensRepository
         ;
     }
 
-    public async Task CreateRefreshToken(RefreshToken refreshToken)
+    public async Task AddRefreshToken(RefreshToken refreshToken)
     {
         var parameters = new
         {

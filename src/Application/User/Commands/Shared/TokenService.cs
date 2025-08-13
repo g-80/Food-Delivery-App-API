@@ -7,12 +7,12 @@ using Microsoft.IdentityModel.Tokens;
 public class TokenService : ITokenService
 {
     IUserRepository _usersRepo;
-    IRefreshTokensRepository _refreshTokensRepo;
+    IRefreshTokenRepository _refreshTokensRepo;
     IConfiguration _configuration;
 
     public TokenService(
         IUserRepository usersRepository,
-        IRefreshTokensRepository refreshTokensRepository,
+        IRefreshTokenRepository refreshTokensRepository,
         IConfiguration configuration
     )
     {
@@ -96,7 +96,7 @@ public class TokenService : ITokenService
             ExpiresAt = DateTime.UtcNow.AddDays(7),
         };
 
-        await _refreshTokensRepo.CreateRefreshToken(tokenObject);
+        await _refreshTokensRepo.AddRefreshToken(tokenObject);
         return refreshToken;
     }
 

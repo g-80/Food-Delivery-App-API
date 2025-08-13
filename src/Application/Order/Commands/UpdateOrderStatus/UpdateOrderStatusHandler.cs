@@ -36,7 +36,7 @@ public class UpdateOrderStatusHandler
         };
         if (!allowedStatuses.Contains(command.Status) || (int)order.Status != requiredStatus)
         {
-            throw new Exception("Invalid status update");
+            throw new InvalidOperationException("Invalid status update");
         }
 
         order.Status = command.Status;

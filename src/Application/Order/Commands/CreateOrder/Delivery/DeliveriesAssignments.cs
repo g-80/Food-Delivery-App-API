@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-public class DeliveriesAssignments
+public class DeliveriesAssignments : IDeliveriesAssignments
 {
     private readonly ConcurrentDictionary<int, DeliveryAssignmentJob> _activeAssignments = new();
 

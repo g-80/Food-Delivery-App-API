@@ -1,6 +1,6 @@
-public interface IRefreshTokensRepository
+public interface IRefreshTokenRepository
 {
-    Task CreateRefreshToken(RefreshToken refreshToken);
+    Task AddRefreshToken(RefreshToken refreshToken);
     Task DeleteRefreshToken(int userId);
     Task<RefreshToken?> GetRefreshTokenByUserId(int userId);
 }

@@ -1,4 +1,4 @@
-public class OrdersConfirmations
+public class OrdersConfirmations : IOrdersConfirmations
 {
     private readonly Dictionary<int, OrderConfirmation> _activeConfirmations = new();
 

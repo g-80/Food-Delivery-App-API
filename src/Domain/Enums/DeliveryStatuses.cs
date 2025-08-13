@@ -1,7 +1,6 @@
 public enum DeliveryStatuses
 {
-    pendingOrderConfirmation = 1,
-    assigningDriver,
+    assigningDriver = 1,
     pickup,
     delivering,
     delivered,

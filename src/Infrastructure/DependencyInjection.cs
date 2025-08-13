@@ -19,7 +19,7 @@ namespace FoodDeliveryAppAPI.Infrastructure
             builder.Services.AddScoped<IDriverRepository, DriverRepository>();
             builder.Services.AddScoped<IFoodPlaceRepository, FoodPlaceRepository>();
             builder.Services.AddScoped<IOrderRepository, OrderRepository>();
-            builder.Services.AddScoped<IRefreshTokensRepository, RefreshTokensRepository>();
+            builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
             builder.Services.AddScoped<IUserRepository, UserRepository>();
 
             builder.Services.AddHangfire(configuration =>
