@@ -1,6 +1,6 @@
 public interface IDeliveriesAssignments
 {
-    DeliveryAssignmentJob GetOrCreateAssignmentJob(int orderId);
+    DeliveryAssignmentJob CreateAssignmentJob(int orderId);
     DeliveryAssignmentJob GetAssignmentJob(int orderId);
     void RemoveAssignmentJob(int orderId);
 }

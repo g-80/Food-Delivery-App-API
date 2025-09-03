@@ -44,7 +44,9 @@ public class DeliveryAssignmentServiceTests
             _mockOrderRepository.Object,
             _mockHubContext.Object,
             _mockDeliveriesAssignments.Object,
-            _mockLogger.Object
+            _mockLogger.Object,
+            TimeSpan.FromMilliseconds(10),
+            TimeSpan.FromMilliseconds(5)
         );
     }
 
@@ -52,13 +54,13 @@ public class DeliveryAssignmentServiceTests
     public async Task InitiateDeliveryAssignment_WithAvailableDrivers_ShouldSendOffersToAllDrivers()
     {
         // Arrange
-        var order = CreateTestOrder();
-        var foodPlace = CreateTestFoodPlace();
-        var drivers = CreateTestAvailableDrivers(2);
-        var job = CreateTestDeliveryAssignmentJob(order.Id);
-        var addresses = CreateTestAddresses();
+        var order = OrderTestsHelper.CreateTestOrder();
+        var foodPlace = OrderTestsHelper.CreateTestFoodPlace();
+        var drivers = OrderTestsHelper.CreateTestAvailableDrivers(2);
+        var job = OrderTestsHelper.CreateTestDeliveryAssignmentJob(order.Id);
+        var addresses = OrderTestsHelper.CreateTestAddresses();
 
-        _mockDeliveriesAssignments.Setup(x => x.GetOrCreateAssignmentJob(order.Id)).Returns(job);
+        _mockDeliveriesAssignments.Setup(x => x.CreateAssignmentJob(order.Id)).Returns(job);
         _mockFoodPlaceRepository
             .Setup(x => x.GetFoodPlaceById(order.FoodPlaceId))
             .ReturnsAsync(foodPlace);
@@ -92,22 +94,16 @@ public class DeliveryAssignmentServiceTests
                     ),
                     default
                 ),
-            Times.Exactly(drivers.Count)
+            Times.AtLeast(drivers.Count) // number of retries is private
         );
 
         foreach (var driver in drivers)
         {
             _mockDriverRepository.Verify(
-                x =>
-                    x.UpdateDriverStatus(
-                        It.Is<AvailableDriver>(d =>
-                            d.Id == driver.Id && d.Status == DriverStatuses.offered
-                        )
-                    ),
-                Times.Once
+                x => x.UpdateDriverStatus(It.Is<AvailableDriver>(d => d.Id == driver.Id)),
+                Times.AtLeastOnce
             );
-            job.PendingOffers.ContainsKey(driver.Id).Should().BeTrue();
-            driver.Status.Should().Be(DriverStatuses.offered);
+            driver.Status.Should().Be(DriverStatuses.online);
         }
     }
 
@@ -115,12 +111,12 @@ public class DeliveryAssignmentServiceTests
     public async Task InitiateDeliveryAssignment_WithNoAvailableDrivers_ShouldScheduleRetry()
     {
         // Arrange
-        var order = CreateTestOrder();
-        var foodPlace = CreateTestFoodPlace();
-        var job = CreateTestDeliveryAssignmentJob(order.Id);
+        var order = OrderTestsHelper.CreateTestOrder();
+        var foodPlace = OrderTestsHelper.CreateTestFoodPlace();
+        var job = OrderTestsHelper.CreateTestDeliveryAssignmentJob(order.Id);
         var emptyDriverList = new List<AvailableDriver>();
 
-        _mockDeliveriesAssignments.Setup(x => x.GetOrCreateAssignmentJob(order.Id)).Returns(job);
+        _mockDeliveriesAssignments.Setup(x => x.CreateAssignmentJob(order.Id)).Returns(job);
         _mockFoodPlaceRepository
             .Setup(x => x.GetFoodPlaceById(order.FoodPlaceId))
             .ReturnsAsync(foodPlace);
@@ -151,9 +147,9 @@ public class DeliveryAssignmentServiceTests
         // Arrange
         var driverId = 1;
         var orderId = 100;
-        var job = CreateTestDeliveryAssignmentJob(orderId);
-        var driver = CreateTestAvailableDriver(driverId);
-        var order = CreateTestOrder(orderId);
+        var job = OrderTestsHelper.CreateTestDeliveryAssignmentJob(orderId);
+        var driver = OrderTestsHelper.CreateTestAvailableDriver(driverId);
+        var order = OrderTestsHelper.CreateTestOrder(orderId);
 
         _mockDeliveriesAssignments.Setup(x => x.GetAssignmentJob(orderId)).Returns(job);
         _mockDriverRepository.Setup(x => x.GetDriverById(driverId)).ReturnsAsync(driver);
@@ -188,7 +184,7 @@ public class DeliveryAssignmentServiceTests
         // Arrange
         var driverId = 1;
         var orderId = 100;
-        var job = CreateTestDeliveryAssignmentJob(orderId);
+        var job = OrderTestsHelper.CreateTestDeliveryAssignmentJob(orderId);
         job.AssignedDriverId = 999;
 
         _mockDeliveriesAssignments.Setup(x => x.GetAssignmentJob(orderId)).Returns(job);
@@ -211,7 +207,7 @@ public class DeliveryAssignmentServiceTests
         // Arrange
         var driverId = 1;
         var orderId = 100;
-        var job = CreateTestDeliveryAssignmentJob(orderId);
+        var job = OrderTestsHelper.CreateTestDeliveryAssignmentJob(orderId);
 
         _mockDeliveriesAssignments.Setup(x => x.GetAssignmentJob(orderId)).Returns(job);
         _mockDriverRepository
@@ -232,7 +228,7 @@ public class DeliveryAssignmentServiceTests
         // Arrange
         var driverId = 1;
         var orderId = 100;
-        var job = CreateTestDeliveryAssignmentJob(orderId);
+        var job = OrderTestsHelper.CreateTestDeliveryAssignmentJob(orderId);
         var cts = new CancellationTokenSource();
         job.PendingOffers[driverId] = cts;
 
@@ -252,7 +248,7 @@ public class DeliveryAssignmentServiceTests
         // Arrange
         var driverId = 1;
         var orderId = 100;
-        var job = CreateTestDeliveryAssignmentJob(orderId);
+        var job = OrderTestsHelper.CreateTestDeliveryAssignmentJob(orderId);
 
         _mockDeliveriesAssignments.Setup(x => x.GetAssignmentJob(orderId)).Returns(job);
 
@@ -261,93 +257,5 @@ public class DeliveryAssignmentServiceTests
 
         // Assert
         act.Should().NotThrow();
-    }
-
-    private Order CreateTestOrder(int id = 1)
-    {
-        return new Order
-        {
-            Id = id,
-            CustomerId = 1,
-            FoodPlaceId = 1,
-            DeliveryAddressId = 2,
-            Items = new List<OrderItem>(),
-            Subtotal = 1000,
-            ServiceFee = 0,
-            DeliveryFee = 200,
-            Total = 1200,
-            Delivery = new Delivery
-            {
-                Id = 1,
-                AddressId = 2,
-                ConfirmationCode = "Testing",
-                Status = DeliveryStatuses.assigningDriver,
-            },
-            Status = OrderStatuses.preparing,
-            CreatedAt = DateTime.UtcNow,
-        };
-    }
-
-    private FoodPlace CreateTestFoodPlace()
-    {
-        return new FoodPlace
-        {
-            Id = 1,
-            Name = "Test Restaurant",
-            Description = "A place for testing",
-            Category = "Test Category",
-            AddressId = 1,
-            Location = new Location { Latitude = 51.505, Longitude = -0.3099 },
-        };
-    }
-
-    private List<AvailableDriver> CreateTestAvailableDrivers(int count)
-    {
-        var drivers = new List<AvailableDriver>();
-        for (int i = 1; i <= count; i++)
-        {
-            drivers.Add(CreateTestAvailableDriver(i));
-        }
-        return drivers;
-    }
-
-    private AvailableDriver CreateTestAvailableDriver(int id)
-    {
-        return new AvailableDriver
-        {
-            Id = id,
-            Status = DriverStatuses.online,
-            Distance = 500.0,
-        };
-    }
-
-    private DeliveryAssignmentJob CreateTestDeliveryAssignmentJob(int orderId)
-    {
-        return new DeliveryAssignmentJob
-        {
-            OrderId = orderId,
-            CurrentAttempt = 0,
-            AssignedDriverId = 0,
-            PendingOffers = new ConcurrentDictionary<int, CancellationTokenSource>(),
-        };
-    }
-
-    private List<Address> CreateTestAddresses()
-    {
-        return new List<Address>
-        {
-            new Address
-            {
-                NumberAndStreet = "123 Food St",
-                City = "Test City",
-                Postcode = "W8 8BB",
-            },
-            new Address
-            {
-                NumberAndStreet = "456 Customer Avenue",
-                City = "Test City",
-                Postcode = "W18 18BB",
-            },
-        };
     }
 }

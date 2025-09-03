@@ -34,7 +34,8 @@ public class OrderConfirmationServiceTests
             _mockOrdersConfirmations.Object,
             _mockFoodPlaceRepository.Object,
             _mockUserRepository.Object,
-            _mockLogger.Object
+            _mockLogger.Object,
+            TimeSpan.FromMilliseconds(10)
         );
     }
 

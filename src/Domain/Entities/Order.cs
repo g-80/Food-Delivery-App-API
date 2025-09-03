@@ -10,6 +10,7 @@ public class Order
     public required int DeliveryFee { get; set; }
     public required int Total { get; init; }
     public Delivery? Delivery { get; set; }
+    public Payment? Payment { get; set; }
     public required OrderStatuses Status { get; set; }
     public required DateTime CreatedAt { get; init; }
 

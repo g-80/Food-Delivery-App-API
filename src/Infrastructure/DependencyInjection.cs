@@ -1,6 +1,3 @@
-using Hangfire;
-using Hangfire.PostgreSql;
-
 namespace FoodDeliveryAppAPI.Infrastructure
 {
     public static class DependencyInjection
@@ -21,11 +18,7 @@ namespace FoodDeliveryAppAPI.Infrastructure
             builder.Services.AddScoped<IOrderRepository, OrderRepository>();
             builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
             builder.Services.AddScoped<IUserRepository, UserRepository>();
-
-            builder.Services.AddHangfire(configuration =>
-                configuration.UsePostgreSqlStorage(c => c.UseNpgsqlConnection(connectionString))
-            );
-            builder.Services.AddHangfireServer();
+            builder.Services.AddScoped<IPaymentService, StripePaymentService>();
 
             builder.Logging.ClearProviders();
             builder.Logging.AddSimpleConsole(options =>

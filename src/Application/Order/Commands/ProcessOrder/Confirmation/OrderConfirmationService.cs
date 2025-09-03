@@ -6,7 +6,7 @@ public class OrderConfirmationService : IOrderConfirmationService
     private readonly IOrdersConfirmations _ordersConfirmations;
     private readonly IFoodPlaceRepository _foodPlaceRepository;
     private readonly IUserRepository _userRepository;
-    private readonly TimeSpan _timeout = TimeSpan.FromSeconds(60);
+    private readonly TimeSpan _timeout;
     private readonly ILogger<OrderConfirmationService> _logger;
 
     public OrderConfirmationService(
@@ -14,7 +14,8 @@ public class OrderConfirmationService : IOrderConfirmationService
         IOrdersConfirmations ordersConfirmations,
         IFoodPlaceRepository foodPlaceRepository,
         IUserRepository userRepository,
-        ILogger<OrderConfirmationService> logger
+        ILogger<OrderConfirmationService> logger,
+        TimeSpan? timeout = null
     )
     {
         _hubContext = hubContext;
@@ -22,6 +23,7 @@ public class OrderConfirmationService : IOrderConfirmationService
         _foodPlaceRepository = foodPlaceRepository;
         _userRepository = userRepository;
         _logger = logger;
+        _timeout = timeout ?? TimeSpan.FromSeconds(60);
     }
 
     public async Task<bool> RequestOrderConfirmation(Order order)

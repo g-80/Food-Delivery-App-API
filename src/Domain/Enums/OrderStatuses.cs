@@ -1,6 +1,7 @@
 public enum OrderStatuses
 {
-    pending = 1,
+    pendingPayment,
+    pendingConfirmation,
     preparing,
     readyForPickup,
     delivering,

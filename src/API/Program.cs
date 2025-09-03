@@ -1,7 +1,6 @@
 using FoodDeliveryAppAPI.Api;
 using FoodDeliveryAppAPI.Application;
 using FoodDeliveryAppAPI.Infrastructure;
-using Hangfire;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -26,8 +25,6 @@ app.MapControllers();
 
 app.MapHub<DriverHub>("/hubs/driver");
 app.MapHub<FoodPlaceHub>("/hubs/foodplace");
-
-app.UseHangfireDashboard();
 
 Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 var dbInitialiser = app.Services.GetRequiredService<IDatabaseInitialiser>();

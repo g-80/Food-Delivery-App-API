@@ -34,7 +34,10 @@ public class CancelOrderHandler
         }
         else if (
             order.CustomerId != userId
-            || (order.Status != OrderStatuses.pending && order.Status != OrderStatuses.preparing)
+            || (
+                order.Status != OrderStatuses.pendingConfirmation
+                && order.Status != OrderStatuses.preparing
+            )
         )
         {
             return false;

@@ -132,7 +132,7 @@ CREATE TABLE public.orders (
     service_fee integer NOT NULL,
     delivery_fee integer NOT NULL,
     total integer NOT NULL,
-    status integer NOT NULL CHECK (status IN (1, 2, 3, 4, 5, -1)),
+    status integer NOT NULL CHECK (status IN (0, 1, 2, 3, 4, 5, -1)),
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
 );
@@ -156,6 +156,15 @@ CREATE TABLE public.deliveries (
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     status integer NOT NULL CHECK (status IN (1, 2, 3, 4, 5, -1)),
     delivered_at timestamp with time zone
+);
+
+CREATE TABLE public.payments (
+    order_id integer PRIMARY KEY NOT NULL REFERENCES orders(id) ON DELETE RESTRICT,
+    stripe_payment_intent_id text NOT NULL,
+    amount integer NOT NULL,
+    status integer NOT NULL CHECK (status IN (0, 1, 2, -1, -2, -3)),
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_search_vector ON public.food_places USING gin (search_vector) WITH (fastupdate='true');

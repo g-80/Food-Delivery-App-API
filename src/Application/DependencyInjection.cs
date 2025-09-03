@@ -21,13 +21,14 @@ namespace FoodDeliveryAppAPI.Application
             builder.Services.AddScoped<SearchFoodPlacesHandler>();
 
             builder.Services.AddScoped<CreateOrderHandler>();
+            builder.Services.AddScoped<ProcessOrderHandler>();
             builder.Services.AddScoped<CancelOrderHandler>();
             builder.Services.AddScoped<UpdateOrderStatusHandler>();
             builder.Services.AddScoped<GetOrderHandler>();
             builder.Services.AddScoped<GetAllUserOrdersHandler>();
 
             builder.Services.AddScoped<IOrderConfirmationService, OrderConfirmationService>();
-            builder.Services.AddSingleton<OrdersConfirmations>();
+            builder.Services.AddSingleton<IOrdersConfirmations, OrdersConfirmations>();
 
             builder.Services.AddScoped<IDeliveryAssignmentService, DeliveryAssignmentService>();
             builder.Services.AddSingleton<IDeliveriesAssignments, DeliveriesAssignments>();

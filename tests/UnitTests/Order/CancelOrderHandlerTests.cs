@@ -48,7 +48,7 @@ public class CancelOrderHandlerTests
             ServiceFee = 10,
             DeliveryFee = 5,
             Total = 115,
-            Status = OrderStatuses.pending,
+            Status = OrderStatuses.pendingConfirmation,
             CreatedAt = DateTime.UtcNow,
         };
 

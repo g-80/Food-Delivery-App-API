@@ -4,11 +4,6 @@ public class DeliveriesAssignments : IDeliveriesAssignments
 {
     private readonly ConcurrentDictionary<int, DeliveryAssignmentJob> _activeAssignments = new();
 
-    public DeliveryAssignmentJob GetOrCreateAssignmentJob(int orderId)
-    {
-        return _activeAssignments.GetOrAdd(orderId, CreateNewAssignmentJob);
-    }
-
     public DeliveryAssignmentJob GetAssignmentJob(int orderId)
     {
         if (!_activeAssignments.TryGetValue(orderId, out var job))
@@ -25,14 +20,16 @@ public class DeliveriesAssignments : IDeliveriesAssignments
         _activeAssignments.TryRemove(orderId, out _);
     }
 
-    private DeliveryAssignmentJob CreateNewAssignmentJob(int orderId)
+    public DeliveryAssignmentJob CreateAssignmentJob(int orderId)
     {
-        return new DeliveryAssignmentJob
+        var job = new DeliveryAssignmentJob
         {
             OrderId = orderId,
             CurrentAttempt = 0,
             AssignedDriverId = 0,
             PendingOffers = new ConcurrentDictionary<int, CancellationTokenSource>(),
         };
+        _activeAssignments.TryAdd(orderId, job);
+        return job;
     }
 }

@@ -1,36 +1,29 @@
 using System.Transactions;
-using Hangfire;
 
 public class CreateOrderHandler
 {
     private readonly IAddressRepository _addressRepository;
     private readonly ICartRepository _cartRepository;
     private readonly IOrderRepository _ordersRepository;
-    private readonly IOrderConfirmationService _orderConfirmationService;
-    private readonly IDeliveryAssignmentService _deliveryAssignmentService;
+    private readonly IPaymentService _paymentService;
     private readonly ILogger<CreateOrderHandler> _logger;
-    private readonly IBackgroundJobClient _backgroundJobClient;
 
     public CreateOrderHandler(
         IAddressRepository addressRepository,
         ICartRepository cartRepository,
         IOrderRepository ordersRepository,
-        IOrderConfirmationService orderConfirmationService,
-        IDeliveryAssignmentService deliveryAssignmentService,
-        ILogger<CreateOrderHandler> logger,
-        IBackgroundJobClient backgroundJobClient
+        IPaymentService paymentService,
+        ILogger<CreateOrderHandler> logger
     )
     {
         _addressRepository = addressRepository;
         _cartRepository = cartRepository;
         _ordersRepository = ordersRepository;
-        _orderConfirmationService = orderConfirmationService;
-        _deliveryAssignmentService = deliveryAssignmentService;
+        _paymentService = paymentService;
         _logger = logger;
-        _backgroundJobClient = backgroundJobClient;
     }
 
-    public async Task<int> Handle(CreateOrderCommand command, int customerId)
+    public async Task<CreateOrderDTO> Handle(int customerId, CreateOrderCommand command)
     {
         var address = new Address
         {
@@ -39,9 +32,12 @@ public class CreateOrderHandler
             Postcode = command.DeliveryAddress.Postcode,
         };
         var order = await CreateOrder(customerId, address);
-
-        _backgroundJobClient.Enqueue(() => ProcessOrderAsync(order));
-        return order.Id;
+        var payment = CreatePayment(order);
+        var intent = _paymentService.CreatePaymentIntent(order, address);
+        payment.StripePaymentIntentId = intent.Id;
+        order.Payment = payment;
+        await _ordersRepository.AddPayment(order.Id, payment);
+        return new CreateOrderDTO { OrderId = order.Id, ClientSecret = intent.ClientSecret };
     }
 
     private async Task<Order> CreateOrder(int customerId, Address deliveryAddress)
@@ -62,7 +58,7 @@ public class CreateOrderHandler
                 CustomerId = customerId,
                 FoodPlaceId = cart.FoodPlaceId,
                 DeliveryAddressId = addressId,
-                Status = OrderStatuses.pending,
+                Status = OrderStatuses.pendingPayment,
                 Items = cart
                     .Items.Select(item => new OrderItem
                     {
@@ -91,37 +87,14 @@ public class CreateOrderHandler
         return order;
     }
 
-    public async Task ProcessOrderAsync(Order order)
+    private Payment CreatePayment(Order order)
     {
-        _logger.LogInformation("Processing order ID: {OrderId}", order.Id);
-        var isConfirmed = await _orderConfirmationService.RequestOrderConfirmation(order);
-
-        if (!isConfirmed)
-        {
-            order.Status = OrderStatuses.cancelled;
-            // notify customer about cancellation
-            // initiate refund
-            await _ordersRepository.UpdateOrderStatus(order);
-            _logger.LogInformation(
-                "Order ID: {OrderId} was cancelled after confirmation failed",
-                order.Id
-            );
-            return;
-        }
+        var payment = new Payment { Amount = order.Total, Status = PaymentStatuses.NotConfirmed };
         _logger.LogInformation(
-            "Order ID: {OrderId} confirmed, proceeding to preparation",
-            order.Id
-        );
-        order.Status = OrderStatuses.preparing;
-        await _ordersRepository.UpdateOrderStatus(order);
-        _logger.LogInformation(
-            "Order ID: {OrderId} status updated to {OrderStatus}",
+            "Saved payment record for orderId: {OrderId} for customerId: {CustomerId}",
             order.Id,
-            order.Status
+            order.CustomerId
         );
-        order.CreateDelivery();
-        await _ordersRepository.AddDelivery(order.Id, order.Delivery!);
-
-        await _deliveryAssignmentService.InitiateDeliveryAssignment(order);
+        return payment;
     }
 }

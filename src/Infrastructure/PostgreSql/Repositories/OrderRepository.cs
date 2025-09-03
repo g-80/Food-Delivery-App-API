@@ -1,4 +1,3 @@
-using System.Text;
 using Dapper;
 using Microsoft.Extensions.Options;
 using Npgsql;
@@ -42,24 +41,6 @@ public class OrderRepository : BaseRepository, IOrderRepository
             unnest(@Subtotals::int[])
         RETURNING (SELECT id FROM inserted_order);
         ";
-
-        // for (int i = 0; i < order.Items!.Count; i++)
-        // {
-        //     sql.Append(
-        //         $"((SELECT id FROM inserted_order), @ItemId{i}, @Quantity{i}, @UnitPrice{i}, @Subtotal{i}),"
-        //     );
-        //     parameters.Add($"ItemId{i}", order.Items[i].ItemId);
-        //     parameters.Add($"Quantity{i}", order.Items[i].Quantity);
-        //     parameters.Add($"UnitPrice{i}", order.Items[i].UnitPrice);
-        //     parameters.Add($"Subtotal{i}", order.Items[i].Subtotal);
-        // }
-
-        // // Remove trailing comma
-        // sql.Length--;
-
-        // sql.Append("; SELECT id FROM inserted_order;");
-
-
 
         using (var connection = new NpgsqlConnection(_connectionString))
         {
@@ -143,10 +124,12 @@ public class OrderRepository : BaseRepository, IOrderRepository
             o.id, o.customer_id, o.food_place_id, o.delivery_address_id, o.subtotal,
             o.service_fee, o.delivery_fee, o.total, o.status, o.created_at,
             oi.item_id, oi.quantity, oi.unit_price, oi.subtotal,
-            d.id, d.address_id, d.driver_id, d.confirmation_code, d.status, d.delivered_at
+            d.id, d.address_id, d.driver_id, d.confirmation_code, d.status, d.delivered_at,
+            p.amount, p.stripe_payment_intent_id, p.status
             FROM orders o
             INNER JOIN order_items oi ON o.id = oi.order_id
             LEFT JOIN deliveries d ON o.id = d.order_id
+            INNER JOIN payments p ON o.id = p.order_id
             WHERE o.id = @Id
             ";
 
@@ -155,9 +138,9 @@ public class OrderRepository : BaseRepository, IOrderRepository
         using (var connection = new NpgsqlConnection(_connectionString))
         {
             // <type to map the first part to, type to map the second part to, return type of the lambda>
-            await connection.QueryAsync<QueriedOrderDTO, OrderItem, Delivery, Order?>(
+            await connection.QueryAsync<QueriedOrderDTO, OrderItem, Delivery, Payment, Order?>(
                 sql,
-                (order, item, delivery) =>
+                (order, item, delivery, payment) =>
                 {
                     // This will run for each row returned by the query.
                     if (result == null)
@@ -176,6 +159,7 @@ public class OrderRepository : BaseRepository, IOrderRepository
                             CreatedAt = order.CreatedAt,
                             Items = new List<OrderItem>(),
                             Delivery = delivery,
+                            Payment = payment,
                         };
                     }
                     items.Add(item);
@@ -183,7 +167,7 @@ public class OrderRepository : BaseRepository, IOrderRepository
                     return null;
                 },
                 parameters,
-                splitOn: "item_id, id"
+                splitOn: "item_id, id, amount"
             );
 
             return new Order
@@ -200,6 +184,7 @@ public class OrderRepository : BaseRepository, IOrderRepository
                 CreatedAt = result.CreatedAt,
                 Items = items.AsReadOnly(),
                 Delivery = result.Delivery,
+                Payment = result.Payment,
             };
         }
         ;
@@ -285,18 +270,56 @@ public class OrderRepository : BaseRepository, IOrderRepository
         }
         ;
     }
-}
 
-public class QueriedOrderDTO
-{
-    public required int Id { get; init; }
-    public required int CustomerId { get; init; }
-    public required int FoodPlaceId { get; init; }
-    public required int DeliveryAddressId { get; init; }
-    public required int Subtotal { get; init; }
-    public required int ServiceFee { get; init; }
-    public required int DeliveryFee { get; set; }
-    public required int Total { get; init; }
-    public required OrderStatuses Status { get; set; }
-    public required DateTime CreatedAt { get; init; }
+    public async Task AddPayment(int orderId, Payment payment)
+    {
+        var parameters = new
+        {
+            orderId,
+            payment.StripePaymentIntentId,
+            payment.Amount,
+            payment.Status,
+        };
+
+        const string sql =
+            @"
+            INSERT INTO payments(order_id, stripe_payment_intent_id, amount, status)
+            VALUES (@orderId, @StripePaymentIntentId, @Amount, @Status)";
+
+        using (var connection = new NpgsqlConnection(_connectionString))
+        {
+            await connection.ExecuteAsync(sql, parameters);
+        }
+    }
+
+    public async Task<bool> UpdatePaymentStatus(int orderId, Payment payment)
+    {
+        var parameters = new { orderId, payment.Status };
+
+        const string sql =
+            @"
+            UPDATE payments
+            SET status = @Status
+            WHERE order_id = @orderId";
+
+        using (var connection = new NpgsqlConnection(_connectionString))
+        {
+            int rowsAffected = await connection.ExecuteAsync(sql, parameters);
+            return rowsAffected > 0;
+        }
+    }
+
+    private class QueriedOrderDTO
+    {
+        public required int Id { get; init; }
+        public required int CustomerId { get; init; }
+        public required int FoodPlaceId { get; init; }
+        public required int DeliveryAddressId { get; init; }
+        public required int Subtotal { get; init; }
+        public required int ServiceFee { get; init; }
+        public required int DeliveryFee { get; set; }
+        public required int Total { get; init; }
+        public required OrderStatuses Status { get; set; }
+        public required DateTime CreatedAt { get; init; }
+    }
 }

@@ -11,8 +11,8 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
     private readonly IDeliveriesAssignments _deliveriesAssignments;
     private readonly ILogger<DeliveryAssignmentService> _logger;
 
-    private readonly TimeSpan _offerTimeout = TimeSpan.FromSeconds(30);
-    private readonly TimeSpan _retryTimeout = TimeSpan.FromSeconds(15);
+    private readonly TimeSpan _offerTimeout;
+    private readonly TimeSpan _retryInterval;
     private readonly int _maxAssignmentAttempts = 3;
     private readonly int _defaultDistance = 1500;
 
@@ -24,7 +24,9 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
         IOrderRepository orderRepository,
         IHubContext<DriverHub> hubContext,
         IDeliveriesAssignments deliveriesAssignments,
-        ILogger<DeliveryAssignmentService> logger
+        ILogger<DeliveryAssignmentService> logger,
+        TimeSpan? offerTimeout = null,
+        TimeSpan? retryInterval = null
     )
     {
         _driverRepository = driverRepository;
@@ -35,17 +37,55 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
         _hubContext = hubContext;
         _deliveriesAssignments = deliveriesAssignments;
         _logger = logger;
+
+        _offerTimeout = offerTimeout ?? TimeSpan.FromSeconds(30);
+        _retryInterval = retryInterval ?? TimeSpan.FromSeconds(15);
     }
 
-    public async Task InitiateDeliveryAssignment(Order order)
+    public async Task<bool> InitiateDeliveryAssignment(Order order)
     {
         _logger.LogInformation("Initiating delivery assignment for order ID: {OrderId}", order.Id);
-        var job = _deliveriesAssignments.GetOrCreateAssignmentJob(order.Id);
-        job.CurrentAttempt++;
-
+        var job = _deliveriesAssignments.CreateAssignmentJob(order.Id);
         var foodPlace = await _foodPlaceRepo.GetFoodPlaceById(order.FoodPlaceId);
+
+        var didAssignDriver = false;
+        while (!didAssignDriver)
+        {
+            if (job.CurrentAttempt < _maxAssignmentAttempts)
+            {
+                didAssignDriver = await TryAssignDriver(job, order, foodPlace!);
+                if (!didAssignDriver)
+                {
+                    _logger.LogWarning(
+                        "No driver accepted the delivery offer for order ID: {OrderId}. Scheduling retry attempt {Attempt}.",
+                        job.OrderId,
+                        job.CurrentAttempt + 1
+                    );
+                    await Task.Delay(_retryInterval);
+                }
+            }
+            else
+            {
+                _deliveriesAssignments.RemoveAssignmentJob(job.OrderId);
+                _logger.LogError(
+                    "Max assignment attempts reached for order ID: {OrderId}. Could not assign a driver.",
+                    job.OrderId
+                );
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private async Task<bool> TryAssignDriver(
+        DeliveryAssignmentJob job,
+        Order order,
+        FoodPlace foodPlace
+    )
+    {
+        job.CurrentAttempt++;
         var nearbyDrivers = await _driverRepository.GetAvailableDriversWithinDistance(
-            foodPlace!.Location.Latitude,
+            foodPlace.Location.Latitude,
             foodPlace.Location.Longitude,
             _defaultDistance
         );
@@ -58,57 +98,26 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
                 order.Id,
                 job.CurrentAttempt + 1
             );
-            await ScheduleRetryAttempt(job, order);
-            return;
+            return false;
         }
 
-        foreach (var driver in nearbyDrivers)
-        {
-            var deliveryDto = await CreateDeliveryOfferDto(
-                order.DeliveryAddressId,
-                foodPlace,
-                driver
-            );
-            await OfferDeliveryToDriver(job, deliveryDto, driver);
-        }
+        var tasks = nearbyDrivers
+            .Select(async driver =>
+            {
+                var deliveryDto = await CreateDeliveryOfferDto(
+                    order.DeliveryAddressId,
+                    foodPlace,
+                    driver
+                );
+                return await OfferDeliveryToDriver(job, deliveryDto, driver);
+            })
+            .ToList();
 
-        _ = CheckAssignmentSuccess(job, order);
+        var res = await Task.WhenAll(tasks);
+        return res.Any(r => r == true);
     }
 
-    private async Task CheckAssignmentSuccess(DeliveryAssignmentJob job, Order order)
-    {
-        await Task.Delay(_offerTimeout);
-
-        if (job.AssignedDriverId == 0)
-        {
-            _logger.LogWarning(
-                "No driver accepted the delivery offer for order ID: {OrderId}. Scheduling retry attempt {Attempt}.",
-                job.OrderId,
-                job.CurrentAttempt + 1
-            );
-            await ScheduleRetryAttempt(job, order);
-        }
-    }
-
-    private async Task ScheduleRetryAttempt(DeliveryAssignmentJob job, Order order)
-    {
-        if (job.CurrentAttempt < _maxAssignmentAttempts)
-        {
-            await Task.Delay(_retryTimeout);
-            await InitiateDeliveryAssignment(order);
-        }
-        else
-        {
-            _deliveriesAssignments.RemoveAssignmentJob(job.OrderId);
-            _logger.LogError(
-                "Max assignment attempts reached for order ID: {OrderId}. Could not assign a driver.",
-                job.OrderId
-            );
-            // Handle the case where no driver could be assigned
-        }
-    }
-
-    private async Task OfferDeliveryToDriver(
+    private async Task<bool> OfferDeliveryToDriver(
         DeliveryAssignmentJob job,
         DeliveryOfferDTO dto,
         AvailableDriver driver
@@ -123,34 +132,35 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
         var connection = _hubContext.Clients.User(driver.Id.ToString());
         await connection.SendAsync("ReceiveDeliveryOffer", dto, job.OrderId);
 
-        _ = Task.Run(async () =>
+        try
         {
-            try
-            {
-                _logger.LogInformation(
-                    "Delivery offer sent to driver {DriverId} for order {OrderId}. Waiting for a response with timeout of {Timeout} seconds.",
-                    driver.Id,
-                    job.OrderId,
-                    _offerTimeout
-                );
-                await Task.Delay(_offerTimeout, cts.Token);
-                _logger.LogInformation(
-                    "Delivery offer to driver {DriverId} for order {OrderId} timed out. Cancelling offer.",
-                    driver.Id,
-                    job.OrderId
-                );
+            _logger.LogInformation(
+                "Delivery offer sent to driver {DriverId} for order {OrderId}. Waiting for a response with timeout of {Timeout} seconds.",
+                driver.Id,
+                job.OrderId,
+                _offerTimeout.Seconds
+            );
+            await Task.Delay(_offerTimeout, cts.Token);
 
-                // if-check in case of a race condition
-                if (!cts.IsCancellationRequested)
-                {
-                    await CancelOfferForDriver(job, driver);
-                }
-            }
-            catch (TaskCanceledException)
+            _logger.LogInformation(
+                "Delivery offer to driver {DriverId} for order {OrderId} timed out. Cancelling offer.",
+                driver.Id,
+                job.OrderId
+            );
+            // if-check in case of a race condition
+            if (!cts.IsCancellationRequested)
             {
                 await CancelOfferForDriver(job, driver);
+                return false;
             }
-        });
+            // race condition - driver either accepted or rejected the offer
+            return job.AssignedDriverId == driver.Id;
+        }
+        catch (TaskCanceledException)
+        {
+            await CancelOfferForDriver(job, driver);
+            return job.AssignedDriverId == driver.Id;
+        }
     }
 
     private async Task CancelOfferForDriver(DeliveryAssignmentJob job, AvailableDriver driver)

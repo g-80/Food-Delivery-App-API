@@ -1,7 +1,4 @@
 using FluentAssertions;
-using Hangfire;
-using Hangfire.Common;
-using Hangfire.States;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -12,10 +9,8 @@ public class CreateOrderHandlerTests
     private readonly Mock<IAddressRepository> _addressRepositoryMock;
     private readonly Mock<ICartRepository> _cartRepositoryMock;
     private readonly Mock<IOrderRepository> _ordersRepositoryMock;
-    private readonly Mock<IOrderConfirmationService> _orderConfirmationServiceMock;
-    private readonly Mock<IDeliveryAssignmentService> _deliveryAssignmentServiceMock;
+    private readonly Mock<IPaymentService> _paymentServiceMock;
     private readonly Mock<ILogger<CreateOrderHandler>> _loggerMock;
-    private readonly Mock<IBackgroundJobClient> _backgroundJobClientMock;
     private readonly CreateOrderHandler _handler;
 
     public CreateOrderHandlerTests()
@@ -23,18 +18,14 @@ public class CreateOrderHandlerTests
         _addressRepositoryMock = new Mock<IAddressRepository>();
         _cartRepositoryMock = new Mock<ICartRepository>();
         _ordersRepositoryMock = new Mock<IOrderRepository>();
-        _orderConfirmationServiceMock = new Mock<IOrderConfirmationService>();
-        _deliveryAssignmentServiceMock = new Mock<IDeliveryAssignmentService>();
+        _paymentServiceMock = new Mock<IPaymentService>();
         _loggerMock = new Mock<ILogger<CreateOrderHandler>>();
-        _backgroundJobClientMock = new Mock<IBackgroundJobClient>();
         _handler = new CreateOrderHandler(
             _addressRepositoryMock.Object,
             _cartRepositoryMock.Object,
             _ordersRepositoryMock.Object,
-            _orderConfirmationServiceMock.Object,
-            _deliveryAssignmentServiceMock.Object,
-            _loggerMock.Object,
-            _backgroundJobClientMock.Object
+            _paymentServiceMock.Object,
+            _loggerMock.Object
         );
     }
 
@@ -93,28 +84,36 @@ public class CreateOrderHandlerTests
             .Setup(repo => repo.UpdateCart(It.IsAny<Cart>()))
             .Returns(Task.CompletedTask);
 
+        var clientSecret = "test_client_secret";
+        _paymentServiceMock
+            .Setup(x =>
+                x.CreatePaymentIntent(It.Is<Order>(o => o.Id == orderId), It.IsAny<Address>())
+            )
+            .Returns(new Stripe.PaymentIntent { ClientSecret = clientSecret });
+
         // Act
-        var result = await _handler.Handle(command, customerId);
+        var result = await _handler.Handle(customerId, command);
 
         // Assert
-        result.Should().Be(orderId);
-        cart.Items.Should().BeEmpty();
+        result.Should().BeOfType<CreateOrderDTO>();
+        result.OrderId.Should().Be(orderId);
+        result.ClientSecret.Should().Be(clientSecret);
+
         _addressRepositoryMock.Verify(
-            repo => repo.AddAddress(It.IsAny<Address>(), customerId),
+            repo =>
+                repo.AddAddress(
+                    It.Is<Address>(a =>
+                        a.NumberAndStreet == command.DeliveryAddress.NumberAndStreet
+                    ),
+                    customerId
+                ),
             Times.Once
         );
         _cartRepositoryMock.Verify(repo => repo.GetCartByCustomerId(customerId), Times.Once);
         _cartRepositoryMock.Verify(repo => repo.UpdateCart(It.IsAny<Cart>()), Times.Once);
         _ordersRepositoryMock.Verify(repo => repo.AddOrder(It.IsAny<Order>()), Times.Once);
-        _backgroundJobClientMock.Verify(
-            client =>
-                client.Create(
-                    It.Is<Job>(job =>
-                        job.Method.Name == "ProcessOrderAsync"
-                        && (job.Args[0] as Order).Id == orderId
-                    ),
-                    It.IsAny<EnqueuedState>()
-                ),
+        _ordersRepositoryMock.Verify(
+            repo => repo.AddPayment(orderId, It.IsAny<Payment>()),
             Times.Once
         );
     }
@@ -159,101 +158,20 @@ public class CreateOrderHandlerTests
             .ReturnsAsync(emptyCart);
 
         // Act
-        Func<Task> act = () => _handler.Handle(command, customerId);
+        Func<Task> act = () => _handler.Handle(customerId, command);
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>();
         _cartRepositoryMock.Verify(repo => repo.GetCartByCustomerId(customerId), Times.Once);
+        _cartRepositoryMock.Verify(repo => repo.UpdateCart(It.IsAny<Cart>()), Times.Never);
         _ordersRepositoryMock.Verify(repo => repo.AddOrder(It.IsAny<Order>()), Times.Never);
         _addressRepositoryMock.Verify(
             repo => repo.AddAddress(It.IsAny<Address>(), customerId),
             Times.Never
         );
-        _cartRepositoryMock.Verify(repo => repo.UpdateCart(It.IsAny<Cart>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task ProcessOrderAsync_ShouldCancelOrder_WhenOrderIsRejected()
-    {
-        // Arrange
-        var order = new Order
-        {
-            Id = 1,
-            CustomerId = 1,
-            FoodPlaceId = 1,
-            DeliveryAddressId = 1,
-            Subtotal = 100,
-            ServiceFee = 10,
-            DeliveryFee = 5,
-            Total = 115,
-            Status = OrderStatuses.pending,
-            CreatedAt = DateTime.UtcNow,
-        };
-
-        _orderConfirmationServiceMock
-            .Setup(service => service.RequestOrderConfirmation(order))
-            .ReturnsAsync(false);
-
-        // Act
-        await _handler.ProcessOrderAsync(order);
-
-        // Assert
-        _orderConfirmationServiceMock.Verify(
-            service => service.RequestOrderConfirmation(order),
-            Times.Once
-        );
-        order.Status.Should().Be(OrderStatuses.cancelled);
-        _ordersRepositoryMock.Verify(
-            repo =>
-                repo.UpdateOrderStatus(
-                    It.Is<Order>(o => o.Id == order.Id && o.Status == OrderStatuses.cancelled)
-                ),
-            Times.Once
-        );
-    }
-
-    [Fact]
-    public async Task ProcessOrderAsync_ShouldProcessOrder_WhenConfirmed()
-    {
-        // Arrange
-        var order = new Order
-        {
-            Id = 1,
-            CustomerId = 1,
-            FoodPlaceId = 1,
-            DeliveryAddressId = 1,
-            Subtotal = 100,
-            ServiceFee = 10,
-            DeliveryFee = 5,
-            Total = 115,
-            Status = OrderStatuses.pending,
-            CreatedAt = DateTime.UtcNow,
-        };
-
-        _orderConfirmationServiceMock
-            .Setup(service => service.RequestOrderConfirmation(order))
-            .ReturnsAsync(true);
-
-        // Act
-        await _handler.ProcessOrderAsync(order);
-
-        // Assert
-        _orderConfirmationServiceMock.Verify(
-            service => service.RequestOrderConfirmation(order),
-            Times.Once
-        );
-        order.Status.Should().Be(OrderStatuses.preparing);
-        order.Delivery.Should().NotBeNull();
-        _ordersRepositoryMock.Verify(
-            repo =>
-                repo.UpdateOrderStatus(
-                    It.Is<Order>(o => o.Id == order.Id && o.Status == OrderStatuses.preparing)
-                ),
-            Times.Once
-        );
-        _deliveryAssignmentServiceMock.Verify(
-            service => service.InitiateDeliveryAssignment(order),
-            Times.Once
+        _paymentServiceMock.Verify(
+            x => x.CreatePaymentIntent(It.IsAny<Order>(), It.IsAny<Address>()),
+            Times.Never
         );
     }
 }
