@@ -95,4 +95,17 @@ public static class OrderTestsHelper
             },
         };
     }
+
+    public static User CreateTestUser()
+    {
+        return new User
+        {
+            Id = 1,
+            FirstName = "Test",
+            Surname = "User",
+            PhoneNumber = "07123456789",
+            Password = "hashed_password",
+            UserType = UserTypes.customer,
+        };
+    }
 }

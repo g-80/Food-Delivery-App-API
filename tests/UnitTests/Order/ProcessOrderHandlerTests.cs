@@ -9,6 +9,7 @@ public class ProcessOrderHandlerTests
     private readonly Mock<IOrderRepository> _orderRepositoryMock;
     private readonly Mock<IOrderConfirmationService> _orderConfirmationServiceMock;
     private readonly Mock<IDeliveryAssignmentService> _deliveryAssignmentServiceMock;
+    private readonly Mock<IOrderCancellationService> _orderCancellationServiceMock;
     private readonly Mock<IPaymentService> _paymentServiceMock;
     private readonly Mock<ILogger<ProcessOrderHandler>> _loggerMock;
     private readonly ProcessOrderHandler _handler;
@@ -18,6 +19,7 @@ public class ProcessOrderHandlerTests
         _orderRepositoryMock = new Mock<IOrderRepository>();
         _orderConfirmationServiceMock = new Mock<IOrderConfirmationService>();
         _deliveryAssignmentServiceMock = new Mock<IDeliveryAssignmentService>();
+        _orderCancellationServiceMock = new Mock<IOrderCancellationService>();
         _paymentServiceMock = new Mock<IPaymentService>();
         _loggerMock = new Mock<ILogger<ProcessOrderHandler>>();
 
@@ -25,6 +27,7 @@ public class ProcessOrderHandlerTests
             _orderRepositoryMock.Object,
             _orderConfirmationServiceMock.Object,
             _deliveryAssignmentServiceMock.Object,
+            _orderCancellationServiceMock.Object,
             _paymentServiceMock.Object,
             _loggerMock.Object
         );
@@ -81,6 +84,16 @@ public class ProcessOrderHandlerTests
         _orderConfirmationServiceMock
             .Setup(x => x.RequestOrderConfirmation(order))
             .ReturnsAsync(false);
+        _orderCancellationServiceMock
+            .Setup(x => x.CancelOrder(order, "Confirmation failed"))
+            .Callback<Order, string>(
+                (o, reason) =>
+                {
+                    o.Status = OrderStatuses.cancelled;
+                    o.Payment!.Status = PaymentStatuses.Cancelled;
+                }
+            )
+            .ReturnsAsync(true);
 
         // Act
         await _handler.Handle(orderId);
@@ -90,24 +103,21 @@ public class ProcessOrderHandlerTests
         order.Payment!.Status.Should().Be(PaymentStatuses.Cancelled);
 
         _orderRepositoryMock.Verify(x => x.GetOrderById(orderId), Times.Once);
-        _orderRepositoryMock.Verify(x => x.UpdateOrderStatus(order), Times.Exactly(2));
-        _orderRepositoryMock.Verify(
-            x => x.UpdatePaymentStatus(orderId, order.Payment),
-            Times.Exactly(2)
-        );
+        _orderRepositoryMock.Verify(x => x.UpdateOrderStatus(order), Times.Once); // Only to pendingConfirmation, cancellation service is mocked
+        _orderRepositoryMock.Verify(x => x.UpdatePaymentStatus(orderId, order.Payment), Times.Once);
         _orderRepositoryMock.Verify(
             x => x.AddDelivery(It.IsAny<int>(), It.IsAny<Delivery>()),
             Times.Never
         );
 
         _orderConfirmationServiceMock.Verify(x => x.RequestOrderConfirmation(order), Times.Once);
+        _orderCancellationServiceMock.Verify(
+            x => x.CancelOrder(order, "Confirmation failed"),
+            Times.Once
+        );
         _deliveryAssignmentServiceMock.Verify(
             x => x.InitiateDeliveryAssignment(order),
             Times.Never
-        );
-        _paymentServiceMock.Verify(
-            x => x.CancelPaymentIntent(order.Payment.StripePaymentIntentId!),
-            Times.Once
         );
         _paymentServiceMock.Verify(x => x.CapturePaymentIntent(It.IsAny<string>()), Times.Never);
     }
@@ -126,6 +136,16 @@ public class ProcessOrderHandlerTests
         _deliveryAssignmentServiceMock
             .Setup(x => x.InitiateDeliveryAssignment(order))
             .ReturnsAsync(false);
+        _orderCancellationServiceMock
+            .Setup(x => x.CancelOrder(order, "Delivery assignment failed"))
+            .Callback<Order, string>(
+                (o, reason) =>
+                {
+                    o.Status = OrderStatuses.cancelled;
+                    o.Payment!.Status = PaymentStatuses.Cancelled;
+                }
+            )
+            .ReturnsAsync(true);
 
         // Act
         await _handler.Handle(orderId);
@@ -136,18 +156,14 @@ public class ProcessOrderHandlerTests
         order.Delivery.Should().NotBeNull();
 
         _orderRepositoryMock.Verify(x => x.GetOrderById(orderId), Times.Once);
-        _orderRepositoryMock.Verify(x => x.UpdateOrderStatus(order), Times.Exactly(3));
-        _orderRepositoryMock.Verify(
-            x => x.UpdatePaymentStatus(orderId, order.Payment),
-            Times.Exactly(2)
-        );
+        _orderRepositoryMock.Verify(x => x.UpdateOrderStatus(order), Times.Exactly(2)); // pendingConfirmation then preparing
+        _orderRepositoryMock.Verify(x => x.UpdatePaymentStatus(orderId, order.Payment), Times.Once);
         _orderRepositoryMock.Verify(x => x.AddDelivery(orderId, order.Delivery!), Times.Once);
 
-        // Verify service calls
         _orderConfirmationServiceMock.Verify(x => x.RequestOrderConfirmation(order), Times.Once);
         _deliveryAssignmentServiceMock.Verify(x => x.InitiateDeliveryAssignment(order), Times.Once);
-        _paymentServiceMock.Verify(
-            x => x.CancelPaymentIntent(order.Payment.StripePaymentIntentId!),
+        _orderCancellationServiceMock.Verify(
+            x => x.CancelOrder(order, "Delivery assignment failed"),
             Times.Once
         );
         _paymentServiceMock.Verify(x => x.CapturePaymentIntent(It.IsAny<string>()), Times.Never);

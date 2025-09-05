@@ -8,26 +8,20 @@ public class CancelOrderHandlerTests
     private readonly Mock<IOrderRepository> _orderRepositoryMock;
     private readonly Mock<IUserRepository> _userRepositoryMock;
     private readonly Mock<IFoodPlaceRepository> _foodPlaceRepositoryMock;
+    private readonly Mock<IOrderCancellationService> _orderCancellationServiceMock;
     private readonly CancelOrderHandler _handler;
-    private readonly User _user = new User
-    {
-        Id = 1,
-        FirstName = "Test",
-        Surname = "User",
-        PhoneNumber = "07123456789",
-        Password = "hashed_password",
-        UserType = UserTypes.customer,
-    };
 
     public CancelOrderHandlerTests()
     {
         _orderRepositoryMock = new Mock<IOrderRepository>();
         _userRepositoryMock = new Mock<IUserRepository>();
         _foodPlaceRepositoryMock = new Mock<IFoodPlaceRepository>();
+        _orderCancellationServiceMock = new Mock<IOrderCancellationService>();
         _handler = new CancelOrderHandler(
             _orderRepositoryMock.Object,
             _userRepositoryMock.Object,
-            _foodPlaceRepositoryMock.Object
+            _foodPlaceRepositoryMock.Object,
+            _orderCancellationServiceMock.Object
         );
     }
 
@@ -36,35 +30,32 @@ public class CancelOrderHandlerTests
     {
         // Arrange
         var command = new CancelOrderCommand() { Reason = "Doing Tests" };
-        var orderId = 1;
 
-        var order = new Order
-        {
-            Id = orderId,
-            CustomerId = _user.Id,
-            FoodPlaceId = 1,
-            DeliveryAddressId = 1,
-            Subtotal = 100,
-            ServiceFee = 10,
-            DeliveryFee = 5,
-            Total = 115,
-            Status = OrderStatuses.pendingConfirmation,
-            CreatedAt = DateTime.UtcNow,
-        };
+        var orderId = 1;
+        var order = OrderTestsHelper.CreateTestOrder(orderId);
+
+        var user = OrderTestsHelper.CreateTestUser();
 
         _orderRepositoryMock.Setup(repo => repo.GetOrderById(orderId)).ReturnsAsync(order);
-        _userRepositoryMock.Setup(repo => repo.GetUserById(_user.Id)).ReturnsAsync(_user);
-        _orderRepositoryMock
-            .Setup(repo => repo.UpdateOrderStatus(It.IsAny<Order>()))
+        _userRepositoryMock.Setup(repo => repo.GetUserById(user.Id)).ReturnsAsync(user);
+
+        _orderCancellationServiceMock
+            .Setup(x => x.CancelOrder(order, command.Reason))
+            .Callback<Order, string>(
+                (o, reason) =>
+                {
+                    o.Status = OrderStatuses.cancelled;
+                }
+            )
             .ReturnsAsync(true);
 
         // Act
-        var result = await _handler.Handle(command, _user.Id, orderId);
+        var result = await _handler.Handle(command, user.Id, orderId);
 
         // Assert
         result.Should().BeTrue();
         order.Status.Should().Be(OrderStatuses.cancelled);
-        _orderRepositoryMock.Verify(repo => repo.UpdateOrderStatus(order), Times.Once);
+        _orderCancellationServiceMock.Verify(x => x.CancelOrder(order, command.Reason), Times.Once);
     }
 
     [Fact]
@@ -72,32 +63,26 @@ public class CancelOrderHandlerTests
     {
         // Arrange
         var command = new CancelOrderCommand() { Reason = "Doing Tests" };
-        var userId = 1;
-        var orderId = 1;
 
-        var order = new Order
-        {
-            Id = orderId,
-            CustomerId = userId,
-            FoodPlaceId = 1,
-            DeliveryAddressId = 1,
-            Subtotal = 100,
-            ServiceFee = 10,
-            DeliveryFee = 5,
-            Total = 115,
-            Status = OrderStatuses.delivering,
-            CreatedAt = DateTime.UtcNow,
-        };
+        var user = OrderTestsHelper.CreateTestUser();
+
+        var orderId = 1;
+        var order = OrderTestsHelper.CreateTestOrder(orderId);
+        order.Status = OrderStatuses.preparing;
+        order.Delivery!.Status = DeliveryStatuses.pickup;
 
         _orderRepositoryMock.Setup(repo => repo.GetOrderById(orderId)).ReturnsAsync(order);
-        _userRepositoryMock.Setup(repo => repo.GetUserById(userId)).ReturnsAsync(_user);
+        _userRepositoryMock.Setup(repo => repo.GetUserById(user.Id)).ReturnsAsync(user);
 
         // Act
-        var result = await _handler.Handle(command, userId, orderId);
+        var result = await _handler.Handle(command, user.Id, orderId);
 
         // Assert
         result.Should().BeFalse();
-        order.Status.Should().Be(OrderStatuses.delivering);
-        _orderRepositoryMock.Verify(repo => repo.UpdateOrderStatus(It.IsAny<Order>()), Times.Never);
+        order.Status.Should().Be(OrderStatuses.preparing);
+        _orderCancellationServiceMock.Verify(
+            x => x.CancelOrder(It.IsAny<Order>(), It.IsAny<string>()),
+            Times.Never
+        );
     }
 }

@@ -5,4 +5,5 @@ public interface IPaymentService
     void CancelPaymentIntent(string paymentIntentId);
     void CapturePaymentIntent(string paymentIntentId);
     PaymentIntent CreatePaymentIntent(Order order, Address address);
+    void RefundPayment(string paymentIntentId, int amount);
 }

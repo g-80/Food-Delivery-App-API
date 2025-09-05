@@ -3,6 +3,7 @@ public class ProcessOrderHandler
     private readonly IOrderRepository _ordersRepository;
     private readonly IOrderConfirmationService _orderConfirmationService;
     private readonly IDeliveryAssignmentService _deliveryAssignmentService;
+    private readonly IOrderCancellationService _orderCancellationService;
     private readonly IPaymentService _paymentService;
     private readonly ILogger<ProcessOrderHandler> _logger;
 
@@ -10,6 +11,7 @@ public class ProcessOrderHandler
         IOrderRepository ordersRepository,
         IOrderConfirmationService orderConfirmationService,
         IDeliveryAssignmentService deliveryAssignmentService,
+        IOrderCancellationService orderCancellationService,
         IPaymentService paymentService,
         ILogger<ProcessOrderHandler> logger
     )
@@ -17,6 +19,7 @@ public class ProcessOrderHandler
         _ordersRepository = ordersRepository;
         _orderConfirmationService = orderConfirmationService;
         _deliveryAssignmentService = deliveryAssignmentService;
+        _orderCancellationService = orderCancellationService;
         _paymentService = paymentService;
         _logger = logger;
     }
@@ -36,15 +39,11 @@ public class ProcessOrderHandler
 
         if (!isConfirmed)
         {
-            order.Status = OrderStatuses.cancelled;
-            await _ordersRepository.UpdateOrderStatus(order);
+            await _orderCancellationService.CancelOrder(order, "Confirmation failed");
             _logger.LogInformation(
                 "Order ID: {OrderId} was cancelled after confirmation failed",
                 order.Id
             );
-            _paymentService.CancelPaymentIntent(order.Payment.StripePaymentIntentId!);
-            order.Payment.Status = PaymentStatuses.Cancelled;
-            await _ordersRepository.UpdatePaymentStatus(order.Id, order.Payment);
             return;
         }
 
@@ -61,15 +60,11 @@ public class ProcessOrderHandler
         var result = await _deliveryAssignmentService.InitiateDeliveryAssignment(order);
         if (!result)
         {
-            order.Status = OrderStatuses.cancelled;
-            await _ordersRepository.UpdateOrderStatus(order);
+            await _orderCancellationService.CancelOrder(order, "Delivery assignment failed");
             _logger.LogInformation(
                 "Order ID: {OrderId} was cancelled after delivery assignment failed",
                 order.Id
             );
-            _paymentService.CancelPaymentIntent(order.Payment.StripePaymentIntentId!);
-            order.Payment.Status = PaymentStatuses.Cancelled;
-            await _ordersRepository.UpdatePaymentStatus(order.Id, order.Payment);
             return;
         }
         _paymentService.CapturePaymentIntent(order.Payment.StripePaymentIntentId!);

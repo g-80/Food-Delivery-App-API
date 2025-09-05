@@ -233,6 +233,19 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
         }
     }
 
+    public void CancelOngoingAssignment(int orderId)
+    {
+        var job = _deliveriesAssignments.GetAssignmentJob(orderId);
+        if (job == null)
+            return;
+
+        _logger.LogInformation("Cancelling delivery assignment for order ID: {OrderId}", orderId);
+
+        CancelAllPendingOffers(job);
+
+        _deliveriesAssignments.RemoveAssignmentJob(orderId);
+    }
+
     private void CancelAllPendingOffers(DeliveryAssignmentJob job)
     {
         var pendingDriversIds = job.PendingOffers.Keys.ToList();

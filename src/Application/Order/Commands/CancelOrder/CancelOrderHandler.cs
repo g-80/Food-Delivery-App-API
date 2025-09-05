@@ -3,16 +3,19 @@ public class CancelOrderHandler
     private readonly IOrderRepository _orderRepository;
     private readonly IUserRepository _userRepository;
     private readonly IFoodPlaceRepository _foodPlaceRepository;
+    private readonly IOrderCancellationService _orderCancellationService;
 
     public CancelOrderHandler(
         IOrderRepository orderRepository,
         IUserRepository userRepository,
-        IFoodPlaceRepository foodPlaceRepository
+        IFoodPlaceRepository foodPlaceRepository,
+        IOrderCancellationService orderCancellationService
     )
     {
         _orderRepository = orderRepository;
         _userRepository = userRepository;
         _foodPlaceRepository = foodPlaceRepository;
+        _orderCancellationService = orderCancellationService;
     }
 
     public async Task<bool> Handle(CancelOrderCommand command, int userId, int orderId)
@@ -38,14 +41,12 @@ public class CancelOrderHandler
                 order.Status != OrderStatuses.pendingConfirmation
                 && order.Status != OrderStatuses.preparing
             )
+            || order.Delivery?.Status != DeliveryStatuses.assigningDriver
         )
         {
             return false;
         }
 
-        order.Status = OrderStatuses.cancelled;
-        // store the reason for cancellation
-        // stop any ongoing delivery process
-        return await _orderRepository.UpdateOrderStatus(order);
+        return await _orderCancellationService.CancelOrder(order, command.Reason);
     }
 }

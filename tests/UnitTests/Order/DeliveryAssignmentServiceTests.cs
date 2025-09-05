@@ -258,4 +258,50 @@ public class DeliveryAssignmentServiceTests
         // Assert
         act.Should().NotThrow();
     }
+
+    [Fact]
+    public void CancelOngoingAssignment_ShouldCancelAllOffers_WhenJobExists()
+    {
+        // Arrange
+        var orderId = 123;
+        var driverId = 1;
+
+        var job = OrderTestsHelper.CreateTestDeliveryAssignmentJob(orderId);
+        var cts = new CancellationTokenSource();
+        job.PendingOffers[driverId] = cts;
+        _mockDeliveriesAssignments.Setup(x => x.GetAssignmentJob(orderId)).Returns(job);
+
+        // Act
+        _service.CancelOngoingAssignment(orderId);
+
+        // Assert
+        job.PendingOffers.Should().BeEmpty();
+        cts.Token.IsCancellationRequested.Should().BeTrue();
+        _mockDeliveriesAssignments.Verify(x => x.RemoveAssignmentJob(orderId), Times.Once);
+    }
+
+    [Fact]
+    public void CancelOngoingAssignment_ShouldDoNothing_WhenJobDoesNotExist()
+    {
+        // Arrange
+        var orderId = 123;
+        _mockDeliveriesAssignments
+            .Setup(x => x.GetAssignmentJob(orderId))
+            .Returns((DeliveryAssignmentJob?)null);
+
+        // Act
+        _service.CancelOngoingAssignment(orderId);
+
+        // Assert
+        _mockDriverRepository.Verify(x => x.GetDriverById(It.IsAny<int>()), Times.Never);
+        _mockDriverRepository.Verify(
+            x => x.UpdateDriverStatus(It.IsAny<AvailableDriver>()),
+            Times.Never
+        );
+        _mockDeliveriesAssignments.Verify(x => x.RemoveAssignmentJob(It.IsAny<int>()), Times.Never);
+        _mockClientProxy.Verify(
+            x => x.SendCoreAsync(It.IsAny<string>(), It.IsAny<object[]>(), default),
+            Times.Never
+        );
+    }
 }

@@ -59,4 +59,18 @@ public class StripePaymentService : IPaymentService
             paymentIntentId
         );
     }
+
+    public void RefundPayment(string paymentIntentId, int amount)
+    {
+        var options = new RefundCreateOptions { PaymentIntent = paymentIntentId, Amount = amount };
+
+        var service = new RefundService();
+        var refund = service.Create(options);
+        _logger.LogInformation(
+            "Created refund with id: {RefundId} for payment intent: {PaymentIntentId}, amount: {Amount}",
+            refund.Id,
+            paymentIntentId,
+            amount
+        );
+    }
 }

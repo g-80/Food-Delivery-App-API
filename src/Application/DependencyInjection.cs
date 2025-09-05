@@ -29,6 +29,7 @@ namespace FoodDeliveryAppAPI.Application
 
             builder.Services.AddScoped<IOrderConfirmationService, OrderConfirmationService>();
             builder.Services.AddSingleton<IOrdersConfirmations, OrdersConfirmations>();
+            builder.Services.AddScoped<IOrderCancellationService, OrderCancellationService>();
 
             builder.Services.AddScoped<IDeliveryAssignmentService, DeliveryAssignmentService>();
             builder.Services.AddSingleton<IDeliveriesAssignments, DeliveriesAssignments>();
