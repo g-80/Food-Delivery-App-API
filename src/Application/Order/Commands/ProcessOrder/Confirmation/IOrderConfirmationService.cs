@@ -1,6 +1,6 @@
 public interface IOrderConfirmationService
 {
     Task<bool> RequestOrderConfirmation(Order order);
-    void ConfirmOrder(int orderId);
-    void RejectOrder(int orderId);
+    Task<bool> ConfirmOrder(int orderId, int userId);
+    Task<bool> RejectOrder(int orderId, int userId);
 }

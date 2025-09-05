@@ -10,6 +10,7 @@ public class OrderConfirmationServiceTests
     private readonly Mock<IOrdersConfirmations> _mockOrdersConfirmations;
     private readonly Mock<IFoodPlaceRepository> _mockFoodPlaceRepository;
     private readonly Mock<IUserRepository> _mockUserRepository;
+    private readonly Mock<IOrderRepository> _mockOrderRepository;
     private readonly Mock<ILogger<OrderConfirmationService>> _mockLogger;
     private readonly Mock<IHubContext<FoodPlaceHub>> _mockHubContext;
     private readonly Mock<IHubClients> _mockClients;
@@ -22,6 +23,7 @@ public class OrderConfirmationServiceTests
         _mockOrdersConfirmations = new Mock<IOrdersConfirmations>();
         _mockFoodPlaceRepository = new Mock<IFoodPlaceRepository>();
         _mockUserRepository = new Mock<IUserRepository>();
+        _mockOrderRepository = new Mock<IOrderRepository>();
         _mockLogger = new Mock<ILogger<OrderConfirmationService>>();
         _mockClients = new Mock<IHubClients>();
         _mockClientProxy = new Mock<IClientProxy>();
@@ -34,6 +36,7 @@ public class OrderConfirmationServiceTests
             _mockOrdersConfirmations.Object,
             _mockFoodPlaceRepository.Object,
             _mockUserRepository.Object,
+            _mockOrderRepository.Object,
             _mockLogger.Object,
             TimeSpan.FromMilliseconds(10)
         );
@@ -125,10 +128,12 @@ public class OrderConfirmationServiceTests
     }
 
     [Fact]
-    public void ConfirmOrder_WhenOrderExists_SetsIsConfirmedToTrueAndCancelsToken()
+    public async Task ConfirmOrder_WhenOrderExists_SetsIsConfirmedToTrueAndCancelsToken()
     {
         // Arrange
         var orderId = 123;
+        var userId = 456;
+        var order = CreateTestOrder(orderId);
         var cancellationTokenSource = new CancellationTokenSource();
         var orderConfirmation = new OrderConfirmation
         {
@@ -136,23 +141,52 @@ public class OrderConfirmationServiceTests
             IsConfirmed = false,
         };
 
+        _mockOrderRepository.Setup(x => x.GetOrderById(orderId)).ReturnsAsync(order);
+        _mockFoodPlaceRepository
+            .Setup(x => x.GetFoodPlaceUserId(order.FoodPlaceId))
+            .ReturnsAsync(userId);
         _mockOrdersConfirmations
             .Setup(x => x.GetOrderConfirmation(orderId))
             .Returns(orderConfirmation);
 
         // Act
-        _service.ConfirmOrder(orderId);
+        var result = await _service.ConfirmOrder(orderId, userId);
 
         // Assert
+        result.Should().BeTrue();
         orderConfirmation.IsConfirmed.Should().BeTrue();
         cancellationTokenSource.Token.IsCancellationRequested.Should().BeTrue();
     }
 
     [Fact]
-    public void RejectOrder_WhenOrderExists_CancelsTokenWithoutSettingConfirmation()
+    public async Task ConfirmOrder_WhenOrderDoesNotBelongToUser_ReturnsFalse()
     {
         // Arrange
         var orderId = 123;
+        var userId = 456;
+        var wrongUserId = 999;
+        var order = CreateTestOrder(orderId);
+
+        _mockOrderRepository.Setup(x => x.GetOrderById(orderId)).ReturnsAsync(order);
+        _mockFoodPlaceRepository
+            .Setup(x => x.GetFoodPlaceUserId(order.FoodPlaceId))
+            .ReturnsAsync(wrongUserId);
+
+        // Act
+        var result = await _service.ConfirmOrder(orderId, userId);
+
+        // Assert
+        result.Should().BeFalse();
+        _mockOrdersConfirmations.Verify(x => x.GetOrderConfirmation(It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RejectOrder_WhenOrderExists_CancelsTokenWithoutSettingConfirmation()
+    {
+        // Arrange
+        var orderId = 123;
+        var userId = 456;
+        var order = CreateTestOrder(orderId);
         var cancellationTokenSource = new CancellationTokenSource();
         var orderConfirmation = new OrderConfirmation
         {
@@ -160,16 +194,43 @@ public class OrderConfirmationServiceTests
             IsConfirmed = false,
         };
 
+        _mockOrderRepository.Setup(x => x.GetOrderById(orderId)).ReturnsAsync(order);
+        _mockFoodPlaceRepository
+            .Setup(x => x.GetFoodPlaceUserId(order.FoodPlaceId))
+            .ReturnsAsync(userId);
         _mockOrdersConfirmations
             .Setup(x => x.GetOrderConfirmation(orderId))
             .Returns(orderConfirmation);
 
         // Act
-        _service.RejectOrder(orderId);
+        var result = await _service.RejectOrder(orderId, userId);
 
         // Assert
+        result.Should().BeTrue();
         orderConfirmation.IsConfirmed.Should().BeFalse();
         cancellationTokenSource.Token.IsCancellationRequested.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RejectOrder_WhenOrderDoesNotBelongToUser_ReturnsFalse()
+    {
+        // Arrange
+        var orderId = 123;
+        var userId = 456;
+        var wrongUserId = 999;
+        var order = CreateTestOrder(orderId);
+
+        _mockOrderRepository.Setup(x => x.GetOrderById(orderId)).ReturnsAsync(order);
+        _mockFoodPlaceRepository
+            .Setup(x => x.GetFoodPlaceUserId(order.FoodPlaceId))
+            .ReturnsAsync(wrongUserId);
+
+        // Act
+        var result = await _service.RejectOrder(orderId, userId);
+
+        // Assert
+        result.Should().BeFalse();
+        _mockOrdersConfirmations.Verify(x => x.GetOrderConfirmation(It.IsAny<int>()), Times.Never);
     }
 
     private Order CreateTestOrder(int id = 1)

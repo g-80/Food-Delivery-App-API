@@ -187,7 +187,7 @@ public class OrdersController : ControllerBase
 
     [Authorize(Roles = nameof(UserTypes.food_place))]
     [HttpPatch("confirmation/{orderId:int:min(1)}")]
-    public IActionResult ConfirmOrder(
+    public async Task<IActionResult> ConfirmOrder(
         [FromRoute] int orderId,
         [FromBody] OrderConfirmationRequest request
     )
@@ -195,16 +195,30 @@ public class OrdersController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
+        var userId = _userContextService.GetUserIdFromJwt();
+        bool success;
+
         if (request.Confirmed)
         {
-            _logger.LogInformation("Received confirmation for order ID: {OrderId}", orderId);
-            _orderConfirmationService.ConfirmOrder(orderId);
+            _logger.LogInformation(
+                "Received confirmation for order ID: {OrderId} from user ID: {UserId}",
+                orderId,
+                userId
+            );
+            success = await _orderConfirmationService.ConfirmOrder(orderId, userId);
         }
         else
         {
-            _logger.LogInformation("Received rejection for order ID: {OrderId}", orderId);
-            _orderConfirmationService.RejectOrder(orderId);
+            _logger.LogInformation(
+                "Received rejection for order ID: {OrderId} from user ID: {UserId}",
+                orderId,
+                userId
+            );
+            success = await _orderConfirmationService.RejectOrder(orderId, userId);
         }
+
+        if (!success)
+            return Unauthorized();
 
         return Ok();
     }

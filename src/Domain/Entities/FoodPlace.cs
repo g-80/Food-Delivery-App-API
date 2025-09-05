@@ -21,13 +21,13 @@ public class FoodPlace
 
     public void UpdateItem(FoodPlaceItem item)
     {
-        var existingItem = _items!.FirstOrDefault(i => i.Id == item.Id);
-        if (existingItem != null)
-        {
-            existingItem.Name = item.Name;
-            existingItem.Description = item.Description;
-            existingItem.Price = item.Price;
-            existingItem.IsAvailable = item.IsAvailable;
-        }
+        var existingItem =
+            _items!.FirstOrDefault(i => i.Id == item.Id)
+            ?? throw new ArgumentException("Item does not exist");
+
+        existingItem.Name = item.Name;
+        existingItem.Description = item.Description;
+        existingItem.Price = item.Price;
+        existingItem.IsAvailable = item.IsAvailable;
     }
 }

@@ -6,6 +6,7 @@ public class OrderConfirmationService : IOrderConfirmationService
     private readonly IOrdersConfirmations _ordersConfirmations;
     private readonly IFoodPlaceRepository _foodPlaceRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IOrderRepository _orderRepository;
     private readonly TimeSpan _timeout;
     private readonly ILogger<OrderConfirmationService> _logger;
 
@@ -14,6 +15,7 @@ public class OrderConfirmationService : IOrderConfirmationService
         IOrdersConfirmations ordersConfirmations,
         IFoodPlaceRepository foodPlaceRepository,
         IUserRepository userRepository,
+        IOrderRepository orderRepository,
         ILogger<OrderConfirmationService> logger,
         TimeSpan? timeout = null
     )
@@ -22,6 +24,7 @@ public class OrderConfirmationService : IOrderConfirmationService
         _ordersConfirmations = ordersConfirmations;
         _foodPlaceRepository = foodPlaceRepository;
         _userRepository = userRepository;
+        _orderRepository = orderRepository;
         _logger = logger;
         _timeout = timeout ?? TimeSpan.FromSeconds(60);
     }
@@ -56,7 +59,7 @@ public class OrderConfirmationService : IOrderConfirmationService
             );
             await Task.Delay(_timeout, cts.Token);
             _logger.LogInformation(
-                "Order ID: {OrderId} confirmation request completed without a response from food place {FoodPlaceId}.",
+                "Order ID: {OrderId} confirmation request finished without a response from food place {FoodPlaceId}.",
                 order.Id,
                 order.FoodPlaceId
             );
@@ -77,17 +80,81 @@ public class OrderConfirmationService : IOrderConfirmationService
         return orderConfirmation.IsConfirmed;
     }
 
-    public void ConfirmOrder(int orderId)
+    public async Task<bool> ConfirmOrder(int orderId, int userId)
     {
+        var order = await _orderRepository.GetOrderById(orderId);
+        if (order == null)
+        {
+            _logger.LogWarning("Order with ID {OrderId} not found", orderId);
+            return false;
+        }
+
+        var foodPlaceUserId = await _foodPlaceRepository.GetFoodPlaceUserId(order.FoodPlaceId);
+        if (foodPlaceUserId != userId)
+        {
+            _logger.LogWarning(
+                "User {UserId} attempted to accept order {OrderId} that belongs to food place user {FoodPlaceUserId}",
+                userId,
+                orderId,
+                foodPlaceUserId
+            );
+            return false;
+        }
+
         var orderConfirmation = _ordersConfirmations.GetOrderConfirmation(orderId);
+        if (orderConfirmation == null)
+        {
+            _logger.LogWarning("Order confirmation not found for order ID {OrderId}", orderId);
+            return false;
+        }
+
         orderConfirmation.IsConfirmed = true;
         orderConfirmation.CancellationTokenSource.Cancel();
+
+        _logger.LogInformation(
+            "Order {OrderId} confirmed by food place user {UserId}",
+            orderId,
+            userId
+        );
+        return true;
     }
 
-    public void RejectOrder(int orderId)
+    public async Task<bool> RejectOrder(int orderId, int userId)
     {
+        var order = await _orderRepository.GetOrderById(orderId);
+        if (order == null)
+        {
+            _logger.LogWarning("Order with ID {OrderId} not found", orderId);
+            return false;
+        }
+
+        var foodPlaceUserId = await _foodPlaceRepository.GetFoodPlaceUserId(order.FoodPlaceId);
+        if (foodPlaceUserId != userId)
+        {
+            _logger.LogWarning(
+                "User {UserId} attempted to reject order {OrderId} that belongs to food place user {FoodPlaceUserId}",
+                userId,
+                orderId,
+                foodPlaceUserId
+            );
+            return false;
+        }
+
         var orderConfirmation = _ordersConfirmations.GetOrderConfirmation(orderId);
+        if (orderConfirmation == null)
+        {
+            _logger.LogWarning("Order confirmation not found for order ID {OrderId}", orderId);
+            return false;
+        }
+
         orderConfirmation.CancellationTokenSource.Cancel();
+
+        _logger.LogInformation(
+            "Order {OrderId} rejected by food place user {UserId}",
+            orderId,
+            userId
+        );
+        return true;
     }
 
     private async Task<OrderConfirmationDTO> CreateOrderConfirmationDTO(Order order)
