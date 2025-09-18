@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Dapper;
 using Microsoft.Extensions.Options;
 using Npgsql;
@@ -124,7 +125,7 @@ public class OrderRepository : BaseRepository, IOrderRepository
             o.id, o.customer_id, o.food_place_id, o.delivery_address_id, o.subtotal,
             o.service_fee, o.delivery_fee, o.total, o.status, o.created_at,
             oi.item_id, oi.quantity, oi.unit_price, oi.subtotal,
-            d.id, d.address_id, d.driver_id, d.confirmation_code, d.status, d.delivered_at,
+            d.id, d.address_id, d.driver_id, d.confirmation_code, d.status, d.delivered_at, d.route,
             p.amount, p.stripe_payment_intent_id, p.status
             FROM orders o
             INNER JOIN order_items oi ON o.id = oi.order_id
@@ -138,13 +139,39 @@ public class OrderRepository : BaseRepository, IOrderRepository
         using (var connection = new NpgsqlConnection(_connectionString))
         {
             // <type to map the first part to, type to map the second part to, return type of the lambda>
-            await connection.QueryAsync<QueriedOrderDTO, OrderItem, Delivery, Payment, Order?>(
+            await connection.QueryAsync<
+                QueriedOrderDTO,
+                OrderItem,
+                QueriedDeliveryDTO,
+                Payment,
+                Order?
+            >(
                 sql,
-                (order, item, delivery, payment) =>
+                (order, item, deliveryDto, payment) =>
                 {
                     // This will run for each row returned by the query.
                     if (result == null)
                     {
+                        var delivery = new Delivery
+                        {
+                            Id = deliveryDto.Id,
+                            AddressId = deliveryDto.AddressId,
+                            DriverId = deliveryDto.DriverId,
+                            ConfirmationCode = deliveryDto.ConfirmationCode,
+                            Status = deliveryDto.Status,
+                            DeliveredAt = deliveryDto.DeliveredAt,
+                            Route =
+                                deliveryDto.Route != null
+                                    ? JsonSerializer.Deserialize<MapboxRoute>(
+                                        deliveryDto.Route,
+                                        new JsonSerializerOptions
+                                        {
+                                            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+                                        }
+                                    )
+                                    : null,
+                        };
+
                         result = new Order
                         {
                             Id = order.Id,
@@ -250,18 +277,30 @@ public class OrderRepository : BaseRepository, IOrderRepository
 
     public async Task UpdateDelivery(int orderId, Delivery delivery)
     {
+        var routeJson =
+            delivery.Route != null
+                ? JsonSerializer.Serialize(
+                    delivery.Route,
+                    new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+                    }
+                )
+                : null;
+
         var parameters = new
         {
             orderId,
             delivery.DriverId,
             delivery.Status,
             delivery.DeliveredAt,
+            Route = routeJson,
         };
 
         const string sql =
             @"
                 UPDATE deliveries
-                SET status = @Status, driver_id = @DriverId, delivered_at = @DeliveredAt
+                SET status = @Status, driver_id = @DriverId, delivered_at = @DeliveredAt, route = @Route::jsonb
                 WHERE order_id = @orderId
             ";
         using (var connection = new NpgsqlConnection(_connectionString))
@@ -321,5 +360,16 @@ public class OrderRepository : BaseRepository, IOrderRepository
         public required int Total { get; init; }
         public required OrderStatuses Status { get; set; }
         public required DateTime CreatedAt { get; init; }
+    }
+
+    private class QueriedDeliveryDTO
+    {
+        public int Id { get; init; }
+        public required int AddressId { get; init; }
+        public int DriverId { get; set; }
+        public required string ConfirmationCode { get; init; }
+        public required DeliveryStatuses Status { get; set; }
+        public DateTime DeliveredAt { get; set; }
+        public string? Route { get; set; }
     }
 }

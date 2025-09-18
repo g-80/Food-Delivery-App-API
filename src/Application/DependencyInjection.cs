@@ -12,6 +12,8 @@ namespace FoodDeliveryAppAPI.Application
             builder.Services.AddScoped<DisconnectDriverHandler>();
             builder.Services.AddScoped<GoOnlineHandler>();
             builder.Services.AddScoped<UpsertLocationHandler>();
+            builder.Services.AddScoped<AddDriverLocationHistoryHandler>();
+            builder.Services.AddScoped<AddDriverLocationHistoryValidator>();
 
             builder.Services.AddScoped<CreateFoodPlaceHandler>();
             builder.Services.AddScoped<CreateItemHandler>();
@@ -33,7 +35,8 @@ namespace FoodDeliveryAppAPI.Application
 
             builder.Services.AddScoped<IDeliveryAssignmentService, DeliveryAssignmentService>();
             builder.Services.AddSingleton<IDeliveriesAssignments, DeliveriesAssignments>();
-            builder.Services.AddTransient<JourneyCalculationService>();
+
+            builder.Services.AddScoped<UpdateETAHandler>();
 
             builder.Services.AddScoped<LogInUserHandler>();
             builder.Services.AddScoped<SignUpUserHandler>();

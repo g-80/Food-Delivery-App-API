@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using FluentAssertions;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
@@ -12,7 +11,7 @@ public class DeliveryAssignmentServiceTests
     private readonly Mock<IFoodPlaceRepository> _mockFoodPlaceRepository;
     private readonly Mock<IAddressRepository> _mockAddressRepository;
     private readonly Mock<IOrderRepository> _mockOrderRepository;
-    private readonly Mock<JourneyCalculationService> _mockJourneyCalculationService;
+    private readonly Mock<IJourneyCalculationService> _mockJourneyCalculationService;
     private readonly Mock<IHubContext<DriverHub>> _mockHubContext;
     private readonly Mock<IHubClients> _mockClients;
     private readonly Mock<IClientProxy> _mockClientProxy;
@@ -26,7 +25,7 @@ public class DeliveryAssignmentServiceTests
         _mockFoodPlaceRepository = new Mock<IFoodPlaceRepository>();
         _mockAddressRepository = new Mock<IAddressRepository>();
         _mockOrderRepository = new Mock<IOrderRepository>();
-        _mockJourneyCalculationService = new Mock<JourneyCalculationService>();
+        _mockJourneyCalculationService = new Mock<IJourneyCalculationService>();
         _mockHubContext = new Mock<IHubContext<DriverHub>>();
         _mockClients = new Mock<IHubClients>();
         _mockClientProxy = new Mock<IClientProxy>();
@@ -80,6 +79,21 @@ public class DeliveryAssignmentServiceTests
         _mockAddressRepository
             .Setup(x => x.GetAddressById(It.Is<int>(id => id == order.DeliveryAddressId)))
             .ReturnsAsync(addresses[1]);
+        _mockJourneyCalculationService
+            .Setup(x => x.GeocodeAddressAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(OrderTestsHelper.CreateTestLocation());
+        _mockJourneyCalculationService
+            .Setup(x =>
+                x.CalculateRouteAsync(
+                    It.IsAny<Location>(),
+                    It.IsAny<Location>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(OrderTestsHelper.CreateTestMapboxRoute());
+        _mockJourneyCalculationService
+            .Setup(x => x.CreateCombinedRoute(It.IsAny<MapboxRoute>(), It.IsAny<MapboxRoute>()))
+            .Returns(OrderTestsHelper.CreateTestMapboxRoute());
 
         // Act
         await _service.InitiateDeliveryAssignment(order);
@@ -130,6 +144,13 @@ public class DeliveryAssignmentServiceTests
                 )
             )
             .ReturnsAsync(emptyDriverList);
+        var addresses = OrderTestsHelper.CreateTestAddresses();
+        _mockAddressRepository
+            .Setup(x => x.GetAddressById(It.Is<int>(id => id == order.DeliveryAddressId)))
+            .ReturnsAsync(addresses[1]);
+        _mockJourneyCalculationService
+            .Setup(x => x.GeocodeAddressAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(OrderTestsHelper.CreateTestLocation());
 
         // Act
         await _service.InitiateDeliveryAssignment(order);
@@ -150,6 +171,9 @@ public class DeliveryAssignmentServiceTests
         var job = OrderTestsHelper.CreateTestDeliveryAssignmentJob(orderId);
         var driver = OrderTestsHelper.CreateTestAvailableDriver(driverId);
         var order = OrderTestsHelper.CreateTestOrder(orderId);
+        var testRoute = OrderTestsHelper.CreateTestMapboxRoute();
+        // Add route to job to simulate it being stored during offer creation
+        job.DriversRoutes[driverId] = testRoute;
 
         _mockDeliveriesAssignments.Setup(x => x.GetAssignmentJob(orderId)).Returns(job);
         _mockDriverRepository.Setup(x => x.GetDriverById(driverId)).ReturnsAsync(driver);
@@ -163,6 +187,7 @@ public class DeliveryAssignmentServiceTests
         driver.Status.Should().Be(DriverStatuses.delivering);
         order.Delivery!.DriverId.Should().Be(driverId);
         order.Delivery.Status.Should().Be(DeliveryStatuses.pickup);
+        order.Delivery.Route.Should().Be(testRoute);
 
         _mockDriverRepository.Verify(x => x.UpdateDriverStatus(driver), Times.Once);
         _mockOrderRepository.Verify(x => x.UpdateDelivery(orderId, order.Delivery), Times.Once);

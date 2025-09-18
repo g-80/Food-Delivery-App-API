@@ -6,7 +6,7 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
     private readonly IFoodPlaceRepository _foodPlaceRepo;
     private readonly IAddressRepository _addressRepository;
     private readonly IOrderRepository _orderRepository;
-    private readonly JourneyCalculationService _journeryCalcService;
+    private readonly IJourneyCalculationService _journeryCalcService;
     private readonly IHubContext<DriverHub> _hubContext;
     private readonly IDeliveriesAssignments _deliveriesAssignments;
     private readonly ILogger<DeliveryAssignmentService> _logger;
@@ -20,7 +20,7 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
         IDriverRepository driverRepository,
         IFoodPlaceRepository foodPlaceRepository,
         IAddressRepository addressRepository,
-        JourneyCalculationService journeyCalculationService,
+        IJourneyCalculationService journeyCalculationService,
         IOrderRepository orderRepository,
         IHubContext<DriverHub> hubContext,
         IDeliveriesAssignments deliveriesAssignments,
@@ -48,12 +48,19 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
         var job = _deliveriesAssignments.CreateAssignmentJob(order.Id);
         var foodPlace = await _foodPlaceRepo.GetFoodPlaceById(order.FoodPlaceId);
 
+        var foodPlaceToCustomerRoute = await CalculateRouteFoodPlaceToCustomer(order, foodPlace!);
+
         var didAssignDriver = false;
         while (!didAssignDriver)
         {
             if (job.CurrentAttempt < _maxAssignmentAttempts)
             {
-                didAssignDriver = await TryAssignDriver(job, order, foodPlace!);
+                didAssignDriver = await TryAssignDriver(
+                    job,
+                    order,
+                    foodPlace!,
+                    foodPlaceToCustomerRoute
+                );
                 if (!didAssignDriver)
                 {
                     _logger.LogWarning(
@@ -80,7 +87,8 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
     private async Task<bool> TryAssignDriver(
         DeliveryAssignmentJob job,
         Order order,
-        FoodPlace foodPlace
+        FoodPlace foodPlace,
+        MapboxRoute foodPlaceToCustomerRoute
     )
     {
         job.CurrentAttempt++;
@@ -105,9 +113,11 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
             .Select(async driver =>
             {
                 var deliveryDto = await CreateDeliveryOfferDto(
+                    job,
                     order.DeliveryAddressId,
                     foodPlace,
-                    driver
+                    driver,
+                    foodPlaceToCustomerRoute
                 );
                 return await OfferDeliveryToDriver(job, deliveryDto, driver);
             })
@@ -215,6 +225,12 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
         var order = await _orderRepository.GetOrderById(orderId);
         order!.Delivery!.DriverId = driverId;
         order.Delivery.Status = DeliveryStatuses.pickup;
+
+        if (job.DriversRoutes.TryGetValue(driverId, out var route))
+        {
+            order.Delivery.Route = route;
+        }
+
         await _orderRepository.UpdateDelivery(orderId, order.Delivery);
 
         var connection = _hubContext.Clients.User(driverId.ToString());
@@ -259,9 +275,11 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
     }
 
     private async Task<DeliveryOfferDTO> CreateDeliveryOfferDto(
+        DeliveryAssignmentJob job,
         int deliveryAddressId,
         FoodPlace foodPlace,
-        AvailableDriver availableDriver
+        AvailableDriver availableDriver,
+        MapboxRoute foodPlaceToCustomerRoute
     )
     {
         var foodPlaceAddress =
@@ -271,17 +289,66 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
             await _addressRepository.GetAddressById(deliveryAddressId)
             ?? throw new InvalidOperationException("Delivery destination address not found");
 
+        var driverLocation =
+            availableDriver.Location
+            ?? throw new InvalidOperationException("Driver location not available");
+
+        var driverToFoodPlaceRoute = await _journeryCalcService.CalculateRouteAsync(
+            driverLocation,
+            foodPlace.Location
+        );
+
+        var pickupStopTime = TimeSpan.FromMinutes(3);
+        var deliveryStopTime = TimeSpan.FromMinutes(2);
+
+        var combinedRoute = _journeryCalcService.CreateCombinedRoute(
+            driverToFoodPlaceRoute,
+            foodPlaceToCustomerRoute
+        );
+
+        job.DriversRoutes[availableDriver.Id] = combinedRoute;
+
         return new DeliveryOfferDTO
         {
             FoodPlaceName = foodPlace.Name,
             FoodPlaceAddress = foodPlaceAddress,
-            DistanceToFoodPlace = (int)availableDriver.Distance,
-            EstimatedTimeToFoodPlace = _journeryCalcService.CalculateEstimatedTimeToDestination(),
+            DistanceToFoodPlace = driverToFoodPlaceRoute.Distance,
             EstimatedOrderPreparationTime = TimeSpan.FromMinutes(12),
+            EstimatedPickupTime =
+                TimeSpan.FromSeconds(driverToFoodPlaceRoute.Duration) + pickupStopTime,
+
             DeliveryDestinationAddress = deliveryDestinationAddress,
-            DistanceToDeliveryDestination = _journeryCalcService.CalculateDistanceToDestination(),
-            EstimatedTimeToDeliveryDestination =
-                _journeryCalcService.CalculateEstimatedTimeToDestination(),
+            DistanceToDeliveryDestination = foodPlaceToCustomerRoute.Distance,
+            EstimatedDeliveryTime =
+                TimeSpan.FromSeconds(foodPlaceToCustomerRoute.Duration) + deliveryStopTime,
+
+            TotalDistance = combinedRoute.Distance,
+            TotalEstimatedTime =
+                TimeSpan.FromSeconds(combinedRoute.Duration) + pickupStopTime + deliveryStopTime,
+            Route = combinedRoute,
         };
+    }
+
+    private async Task<MapboxRoute> CalculateRouteFoodPlaceToCustomer(
+        Order order,
+        FoodPlace foodPlace
+    )
+    {
+        var deliveryDestinationAddress =
+            await _addressRepository.GetAddressById(order.DeliveryAddressId)
+            ?? throw new InvalidOperationException("Delivery destination address not found");
+
+        var addressString =
+            $"{deliveryDestinationAddress.NumberAndStreet}, {deliveryDestinationAddress.City}, {deliveryDestinationAddress.Postcode}";
+        var customerLocation = await _journeryCalcService.GeocodeAddressAsync(addressString);
+
+        if (customerLocation == null)
+        {
+            throw new InvalidOperationException(
+                $"Could not geocode customer address: {addressString}"
+            );
+        }
+
+        return await _journeryCalcService.CalculateRouteAsync(foodPlace.Location, customerLocation);
     }
 }

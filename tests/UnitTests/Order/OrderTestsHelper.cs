@@ -63,6 +63,7 @@ public static class OrderTestsHelper
             Id = id,
             Status = DriverStatuses.online,
             Distance = 500.0,
+            Location = CreateTestLocation(),
         };
     }
 
@@ -74,6 +75,7 @@ public static class OrderTestsHelper
             CurrentAttempt = 0,
             AssignedDriverId = 0,
             PendingOffers = new ConcurrentDictionary<int, CancellationTokenSource>(),
+            DriversRoutes = new Dictionary<int, MapboxRoute>(),
         };
     }
 
@@ -107,5 +109,68 @@ public static class OrderTestsHelper
             Password = "hashed_password",
             UserType = UserTypes.customer,
         };
+    }
+
+    public static MapboxRoute CreateTestMapboxRoute(
+        double distance = 1000.0,
+        double duration = 600.0
+    )
+    {
+        return new MapboxRoute
+        {
+            Distance = 5000.0,
+            Duration = 600.0,
+            Geometry = new MapboxGeometry
+            {
+                Type = "LineString",
+                Coordinates =
+                [
+                    [0, 0],
+                    [1, 1],
+                ],
+            },
+            Legs = new[]
+            {
+                new MapboxLeg
+                {
+                    Distance = 5000.0,
+                    Duration = 600.0,
+                    Steps = new[]
+                    {
+                        new MapboxStep
+                        {
+                            Name = "Main Street",
+                            Distance = 500.0,
+                            Duration = 60.0,
+                            Maneuver = new MapboxManeuver
+                            {
+                                Type = "turn",
+                                Modifier = "left",
+                                Location = [0.0, 0.0],
+                                BearingBefore = 0,
+                                BearingAfter = 270,
+                                Instruction = "Turn left onto Main Street",
+                            },
+                            Geometry = new MapboxGeometry
+                            {
+                                Type = "LineString",
+                                Coordinates =
+                                [
+                                    [0, 0],
+                                    [0.1, 0.1],
+                                ],
+                            },
+                            BannerInstructions = Array.Empty<MapboxBannerInstruction>(),
+                            VoiceInstructions = Array.Empty<MapboxVoiceInstruction>(),
+                        },
+                    },
+                },
+            },
+        };
+    }
+
+    public static Location CreateTestLocation(double latitude = 51.5074, double longitude = -0.1278)
+    {
+        return new Location { Latitude = latitude, Longitude = longitude };
     }
 }

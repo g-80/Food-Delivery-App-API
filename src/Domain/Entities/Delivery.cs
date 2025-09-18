@@ -5,5 +5,6 @@ public class Delivery
     public int DriverId { get; set; }
     public required string ConfirmationCode { get; init; }
     public required DeliveryStatuses Status { get; set; }
-    public DateTime DeliveredAt { get; set; }
+    public DateTime? DeliveredAt { get; set; }
+    public MapboxRoute? Route { get; set; }
 }

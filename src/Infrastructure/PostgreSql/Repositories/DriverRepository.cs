@@ -163,4 +163,30 @@ public class DriverRepository : BaseRepository, IDriverRepository
         }
         ;
     }
+
+    public async Task AddDriverLocationHistoryAsync(DriverLocationHistory locationHistory)
+    {
+        const string sql =
+            @"
+            INSERT INTO driver_location_history
+            (driver_id, latitude, longitude, accuracy, speed, heading, timestamp, delivery_id)
+            VALUES (@DriverId, @Latitude, @Longitude, @Accuracy, @Speed, @Heading, @Timestamp, @DeliveryId)
+            ";
+
+        using var connection = new NpgsqlConnection(_connectionString);
+        await connection.ExecuteAsync(
+            sql,
+            new
+            {
+                locationHistory.DriverId,
+                locationHistory.Location.Latitude,
+                locationHistory.Location.Longitude,
+                locationHistory.Accuracy,
+                locationHistory.Speed,
+                locationHistory.Heading,
+                locationHistory.Timestamp,
+                locationHistory.DeliveryId,
+            }
+        );
+    }
 }

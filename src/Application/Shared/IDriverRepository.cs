@@ -11,4 +11,5 @@ public interface IDriverRepository
     public Task<Driver?> GetDriverById(int id);
     public Task UpdateDriverStatus(Driver driver);
     public Task UpsertDriverLocation(Driver driver);
+    Task AddDriverLocationHistoryAsync(DriverLocationHistory locationHistory);
 }
