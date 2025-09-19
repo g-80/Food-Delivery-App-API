@@ -12,5 +12,6 @@ public class DeliveryOfferDTO
 
     public required double TotalDistance { get; init; }
     public required TimeSpan TotalEstimatedTime { get; init; }
+    public required int PaymentAmount { get; init; }
     public required MapboxRoute Route { get; init; }
 }

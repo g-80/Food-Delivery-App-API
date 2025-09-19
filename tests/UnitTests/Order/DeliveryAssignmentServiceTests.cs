@@ -16,6 +16,7 @@ public class DeliveryAssignmentServiceTests
     private readonly Mock<IHubClients> _mockClients;
     private readonly Mock<IClientProxy> _mockClientProxy;
     private readonly Mock<IDeliveriesAssignments> _mockDeliveriesAssignments;
+    private readonly Mock<IDriverPaymentService> _mockDriverPaymentService;
     private readonly Mock<ILogger<DeliveryAssignmentService>> _mockLogger;
     private readonly DeliveryAssignmentService _service;
 
@@ -30,6 +31,7 @@ public class DeliveryAssignmentServiceTests
         _mockClients = new Mock<IHubClients>();
         _mockClientProxy = new Mock<IClientProxy>();
         _mockDeliveriesAssignments = new Mock<IDeliveriesAssignments>();
+        _mockDriverPaymentService = new Mock<IDriverPaymentService>();
         _mockLogger = new Mock<ILogger<DeliveryAssignmentService>>();
 
         _mockHubContext.Setup(x => x.Clients).Returns(_mockClients.Object);
@@ -43,6 +45,7 @@ public class DeliveryAssignmentServiceTests
             _mockOrderRepository.Object,
             _mockHubContext.Object,
             _mockDeliveriesAssignments.Object,
+            _mockDriverPaymentService.Object,
             _mockLogger.Object,
             TimeSpan.FromMilliseconds(10),
             TimeSpan.FromMilliseconds(5)
@@ -94,6 +97,9 @@ public class DeliveryAssignmentServiceTests
         _mockJourneyCalculationService
             .Setup(x => x.CreateCombinedRoute(It.IsAny<MapboxRoute>(), It.IsAny<MapboxRoute>()))
             .Returns(OrderTestsHelper.CreateTestMapboxRoute());
+        _mockDriverPaymentService
+            .Setup(x => x.CalculatePayment(It.IsAny<double>(), It.IsAny<double>()))
+            .Returns(500);
 
         // Act
         await _service.InitiateDeliveryAssignment(order);
@@ -178,6 +184,9 @@ public class DeliveryAssignmentServiceTests
         _mockDeliveriesAssignments.Setup(x => x.GetAssignmentJob(orderId)).Returns(job);
         _mockDriverRepository.Setup(x => x.GetDriverById(driverId)).ReturnsAsync(driver);
         _mockOrderRepository.Setup(x => x.GetOrderById(orderId)).ReturnsAsync(order);
+        _mockDriverPaymentService
+            .Setup(x => x.CalculatePayment(It.IsAny<double>(), It.IsAny<double>()))
+            .Returns(500);
 
         // Act
         await _service.AcceptDeliveryOffer(driverId, orderId);
@@ -188,6 +197,7 @@ public class DeliveryAssignmentServiceTests
         order.Delivery!.DriverId.Should().Be(driverId);
         order.Delivery.Status.Should().Be(DeliveryStatuses.pickup);
         order.Delivery.Route.Should().Be(testRoute);
+        order.Delivery.PaymentAmount.Should().Be(500);
 
         _mockDriverRepository.Verify(x => x.UpdateDriverStatus(driver), Times.Once);
         _mockOrderRepository.Verify(x => x.UpdateDelivery(orderId, order.Delivery), Times.Once);

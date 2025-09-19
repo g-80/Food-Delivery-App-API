@@ -91,8 +91,13 @@ public class Cart
     private void RecalculatePricing()
     {
         int subtotal = _items.Sum(item => item.Subtotal);
-        int serviceFee = 0;
-        int deliveryFee = 0;
+        if (subtotal == 0)
+        {
+            Pricing.UpdatePricing(0, 0, 0);
+            return;
+        }
+        int serviceFee = 0.1 * subtotal < 50 ? 50 : Convert.ToInt32(0.1 * subtotal);
+        int deliveryFee = 250;
 
         Pricing.UpdatePricing(subtotal, serviceFee, deliveryFee);
     }

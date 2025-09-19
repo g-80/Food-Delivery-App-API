@@ -9,6 +9,7 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
     private readonly IJourneyCalculationService _journeryCalcService;
     private readonly IHubContext<DriverHub> _hubContext;
     private readonly IDeliveriesAssignments _deliveriesAssignments;
+    private readonly IDriverPaymentService _driverPaymentService;
     private readonly ILogger<DeliveryAssignmentService> _logger;
 
     private readonly TimeSpan _offerTimeout;
@@ -24,6 +25,7 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
         IOrderRepository orderRepository,
         IHubContext<DriverHub> hubContext,
         IDeliveriesAssignments deliveriesAssignments,
+        IDriverPaymentService driverPaymentService,
         ILogger<DeliveryAssignmentService> logger,
         TimeSpan? offerTimeout = null,
         TimeSpan? retryInterval = null
@@ -36,6 +38,7 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
         _journeryCalcService = journeyCalculationService;
         _hubContext = hubContext;
         _deliveriesAssignments = deliveriesAssignments;
+        _driverPaymentService = driverPaymentService;
         _logger = logger;
 
         _offerTimeout = offerTimeout ?? TimeSpan.FromSeconds(30);
@@ -229,6 +232,10 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
         if (job.DriversRoutes.TryGetValue(driverId, out var route))
         {
             order.Delivery.Route = route;
+            order.Delivery.PaymentAmount = _driverPaymentService.CalculatePayment(
+                route.Distance,
+                route.Duration
+            );
         }
 
         await _orderRepository.UpdateDelivery(orderId, order.Delivery);
@@ -308,6 +315,11 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
 
         job.DriversRoutes[availableDriver.Id] = combinedRoute;
 
+        var paymentAmount = _driverPaymentService.CalculatePayment(
+            combinedRoute.Distance,
+            combinedRoute.Duration
+        );
+
         return new DeliveryOfferDTO
         {
             FoodPlaceName = foodPlace.Name,
@@ -325,6 +337,7 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
             TotalDistance = combinedRoute.Distance,
             TotalEstimatedTime =
                 TimeSpan.FromSeconds(combinedRoute.Duration) + pickupStopTime + deliveryStopTime,
+            PaymentAmount = paymentAmount,
             Route = combinedRoute,
         };
     }

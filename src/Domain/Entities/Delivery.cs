@@ -7,4 +7,5 @@ public class Delivery
     public required DeliveryStatuses Status { get; set; }
     public DateTime? DeliveredAt { get; set; }
     public MapboxRoute? Route { get; set; }
+    public int? PaymentAmount { get; set; }
 }

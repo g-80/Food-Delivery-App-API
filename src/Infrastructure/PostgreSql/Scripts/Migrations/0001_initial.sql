@@ -156,7 +156,8 @@ CREATE TABLE public.deliveries (
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     status integer NOT NULL CHECK (status IN (1, 2, 3, 4, 5, -1)),
     delivered_at timestamp with time zone,
-    route JSONB
+    route JSONB,
+    payment_amount integer
 );
 
 CREATE TABLE public.payments (

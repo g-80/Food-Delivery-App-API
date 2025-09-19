@@ -125,7 +125,7 @@ public class OrderRepository : BaseRepository, IOrderRepository
             o.id, o.customer_id, o.food_place_id, o.delivery_address_id, o.subtotal,
             o.service_fee, o.delivery_fee, o.total, o.status, o.created_at,
             oi.item_id, oi.quantity, oi.unit_price, oi.subtotal,
-            d.id, d.address_id, d.driver_id, d.confirmation_code, d.status, d.delivered_at, d.route,
+            d.id, d.address_id, d.driver_id, d.confirmation_code, d.status, d.delivered_at, d.route, d.payment_amount,
             p.amount, p.stripe_payment_intent_id, p.status
             FROM orders o
             INNER JOIN order_items oi ON o.id = oi.order_id
@@ -170,6 +170,7 @@ public class OrderRepository : BaseRepository, IOrderRepository
                                         }
                                     )
                                     : null,
+                            PaymentAmount = deliveryDto.PaymentAmount,
                         };
 
                         result = new Order
@@ -295,12 +296,13 @@ public class OrderRepository : BaseRepository, IOrderRepository
             delivery.Status,
             delivery.DeliveredAt,
             Route = routeJson,
+            delivery.PaymentAmount,
         };
 
         const string sql =
             @"
                 UPDATE deliveries
-                SET status = @Status, driver_id = @DriverId, delivered_at = @DeliveredAt, route = @Route::jsonb
+                SET status = @Status, driver_id = @DriverId, delivered_at = @DeliveredAt, route = @Route::jsonb, payment_amount = @PaymentAmount
                 WHERE order_id = @orderId
             ";
         using (var connection = new NpgsqlConnection(_connectionString))
@@ -371,5 +373,6 @@ public class OrderRepository : BaseRepository, IOrderRepository
         public required DeliveryStatuses Status { get; set; }
         public DateTime DeliveredAt { get; set; }
         public string? Route { get; set; }
+        public int? PaymentAmount { get; set; }
     }
 }
