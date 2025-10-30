@@ -22,6 +22,7 @@ app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 app.MapHub<DriverHub>("/hubs/driver");
 app.MapHub<FoodPlaceHub>("/hubs/foodplace");

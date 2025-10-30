@@ -48,6 +48,7 @@ namespace FoodDeliveryAppAPI.Api
                     };
                 });
             builder.Services.AddSignalR();
+            builder.Services.AddHealthChecks();
         }
     }
 }

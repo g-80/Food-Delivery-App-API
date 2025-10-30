@@ -6,6 +6,12 @@
 # dotenv files
 .env
 
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+
 # User-specific files
 *.rsuser
 *.suo
