@@ -1,11 +1,13 @@
 variable "aws_region" {
   description = "AWS region to deploy resources"
   type        = string
+  default     = "eu-west-2"
 }
 
 variable "project_name" {
   description = "Project name used for resource naming"
   type        = string
+  default     = "food-delivery-app-demo"
 }
 
 variable "image_tag" {
