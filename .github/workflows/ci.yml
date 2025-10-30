@@ -32,7 +32,12 @@ jobs:
     needs: build-and-test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
+    env:
+      TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+      TF_VAR_app_jwt_signing_key: ${{ secrets.APP_JWT_SIGNING_KEY }}
+      TF_VAR_app_stripe_secret_key: ${{ secrets.APP_STRIPE_SECRET_KEY }}
+      TF_VAR_app_mapbox_access_token: ${{ secrets.APP_MAPBOX_ACCESS_TOKEN }}
+      TF_VAR_image_tag: ${{ github.sha }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -78,12 +83,6 @@ jobs:
           terraform show tfplan
 
       - name: Terraform Apply
-        env:
-          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
-          TF_VAR_app_jwt_signing_key: ${{ secrets.APP_JWT_SIGNING_KEY }}
-          TF_VAR_app_stripe_secret_key: ${{ secrets.APP_STRIPE_SECRET_KEY }}
-          TF_VAR_app_mapbox_access_token: ${{ secrets.APP_MAPBOX_ACCESS_TOKEN }}
-          TF_VAR_image_tag: ${{ github.sha }}
         working-directory: ${{ vars.TERRAFORM_DIR }}
         run: terraform apply -auto-approve
 
