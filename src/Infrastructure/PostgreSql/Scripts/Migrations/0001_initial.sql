@@ -18,17 +18,14 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+SET search_path = public, pg_catalog;
 
 
-CREATE SCHEMA topology;
-ALTER SCHEMA topology OWNER TO postgres;
-COMMENT ON SCHEMA topology IS 'PostGIS Topology schema';
+DROP SCHEMA IF EXISTS topology CASCADE;
+DROP SCHEMA IF EXISTS tiger CASCADE;
 
 CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
 COMMENT ON EXTENSION postgis IS 'PostGIS geometry and geography spatial types and functions';
-
-CREATE EXTENSION IF NOT EXISTS postgis_topology WITH SCHEMA topology;
-COMMENT ON EXTENSION postgis_topology IS 'PostGIS topology spatial types and functions';
 
 
 CREATE FUNCTION public.update_food_places_search_vector() RETURNS trigger
@@ -38,9 +35,6 @@ CREATE FUNCTION public.update_food_places_search_vector() RETURNS trigger
   RETURN NEW;
 END;$$;
 
-
-ALTER FUNCTION public.update_food_places_search_vector() OWNER TO postgres;
-
 CREATE FUNCTION public.create_geometry_object_from_latlong() RETURNS trigger
     LANGUAGE plpgsql
 AS $$
@@ -49,8 +43,6 @@ BEGIN
 	RETURN NEW;
 END;
 $$;
-
-ALTER FUNCTION public.create_geometry_object_from_latlong() OWNER TO postgres;
 
 SET default_tablespace = '';
 

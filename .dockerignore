@@ -1,0 +1,11 @@
+.github/
+.vscode/
+.config/
+.gitignore
+.env
+Dockerfile
+compose.yaml
+.dockerignore
+**/bin/
+**/obj/
+**/out/
