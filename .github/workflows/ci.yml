@@ -62,8 +62,16 @@ jobs:
       - name: Get current task definition
         id: get-task-def
         run: |
+          TASK_DEF_ARN=$(aws ecs describe-services \
+            --cluster ${{ vars.ECS_CLUSTER }} \
+            --services ${{ vars.ECS_SERVICE }} \
+            --query 'services[0].taskDefinition' \
+            --output text)
+
+          echo "Current task definition: $TASK_DEF_ARN"
+
           TASK_DEFINITION=$(aws ecs describe-task-definition \
-            --task-definition ${{ vars.ECS_TASK_DEFINITION }} \
+            --task-definition $TASK_DEF_ARN \
             --query 'taskDefinition' \
             --output json)
           echo "$TASK_DEFINITION" > task-definition.json
