@@ -590,7 +590,7 @@ resource "aws_ecs_service" "app" {
   launch_type = "EC2"
 
   deployment_maximum_percent         = 200
-  deployment_minimum_healthy_percent = 100
+  deployment_minimum_healthy_percent = 0
 
   load_balancer {
     target_group_arn = aws_lb_target_group.app.arn
