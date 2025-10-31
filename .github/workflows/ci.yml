@@ -32,12 +32,6 @@ jobs:
     needs: build-and-test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    env:
-      TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
-      TF_VAR_app_jwt_signing_key: ${{ secrets.APP_JWT_SIGNING_KEY }}
-      TF_VAR_app_stripe_secret_key: ${{ secrets.APP_STRIPE_SECRET_KEY }}
-      TF_VAR_app_mapbox_access_token: ${{ secrets.APP_MAPBOX_ACCESS_TOKEN }}
-      TF_VAR_image_tag: ${{ github.sha }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -65,26 +59,59 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "Image pushed: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.13.4
-          terraform_wrapper: false
-
-      - name: Terraform Init
-        working-directory: ${{ vars.TERRAFORM_DIR }}
-        run: terraform init
-
-      - name: Terraform Plan
-        working-directory: ${{ vars.TERRAFORM_DIR }}
+      - name: Get current task definition
+        id: get-task-def
         run: |
-          terraform plan -var="image_tag=${{ github.sha }}" -out=tfplan
-          echo "Changes to be applied:"
-          terraform show tfplan
+          TASK_DEFINITION=$(aws ecs describe-task-definition \
+            --task-definition ${{ vars.ECS_TASK_DEFINITION }} \
+            --query 'taskDefinition' \
+            --output json)
+          echo "$TASK_DEFINITION" > task-definition.json
 
-      - name: Terraform Apply
-        working-directory: ${{ vars.TERRAFORM_DIR }}
-        run: terraform apply -auto-approve
+      - name: Update task definition with new image
+        id: update-task-def
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          NEW_IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          echo "Updating task definition with image: $NEW_IMAGE"
+
+          # Update the image in the task definition JSON
+          jq --arg IMAGE "$NEW_IMAGE" \
+            '.containerDefinitions[0].image = $IMAGE | 
+             del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
+            task-definition.json > new-task-definition.json
+
+          cat new-task-definition.json
+
+      - name: Register new task definition
+        id: register-task-def
+        run: |
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://new-task-definition.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          echo "New task definition registered: $NEW_TASK_DEF_ARN"
+          echo "task_def_arn=$NEW_TASK_DEF_ARN" >> $GITHUB_OUTPUT
+
+      - name: Update ECS service with new task definition
+        run: |
+          echo "Updating ECS service to use new task definition..."
+          aws ecs update-service \
+            --cluster ${{ vars.ECS_CLUSTER }} \
+            --service ${{ vars.ECS_SERVICE }} \
+            --task-definition ${{ steps.register-task-def.outputs.task_def_arn }} \
+            --force-new-deployment
+
+      - name: Wait for deployment to complete
+        run: |
+          echo "Waiting for ECS service to stabilize..."
+          aws ecs wait services-stable \
+            --cluster ${{ vars.ECS_CLUSTER }} \
+            --services ${{ vars.ECS_SERVICE }}
+          echo "Deployment completed successfully!"
 
       - name: Deployment Status
         run: |
@@ -92,5 +119,5 @@ jobs:
           aws ecs describe-services \
             --cluster ${{ vars.ECS_CLUSTER }} \
             --services ${{ vars.ECS_SERVICE }} \
-            --query 'services[0].{Running:runningCount,Desired:desiredCount,Status:status,Deployments:deployments[*].{Status:status}}' \
+            --query 'services[0].{Running:runningCount,Desired:desiredCount,Status:status,Deployments:deployments[*].{Status:status,TaskDefinition:taskDefinition}}' \
             --output table
