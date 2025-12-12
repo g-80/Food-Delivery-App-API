@@ -22,7 +22,6 @@ public class AddItemHandlerTests
             Subtotal = 0,
             ServiceFee = 0,
             DeliveryFee = 0,
-            Total = 0,
         },
     };
     private readonly FoodPlace _foodPlace = new()
@@ -96,7 +95,6 @@ public class AddItemHandlerTests
             CartId = _cart.Id,
             Quantity = 1,
             UnitPrice = 100,
-            Subtotal = 100,
         };
         _cart.AddItem(existingItem, _foodPlace.Id);
 

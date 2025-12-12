@@ -33,12 +33,11 @@ public class UpdateOrderStatusHandlerTests
             CustomerId = userId,
             FoodPlaceId = 1,
             DeliveryAddressId = 1,
-            Subtotal = 100,
             ServiceFee = 10,
             DeliveryFee = 5,
-            Total = 115,
             Status = OrderStatuses.pendingConfirmation,
             CreatedAt = DateTime.UtcNow,
+            Items = new List<OrderItem>()
         };
 
         _orderRepositoryMock.Setup(repo => repo.GetOrderById(orderId)).ReturnsAsync(order);
@@ -67,12 +66,11 @@ public class UpdateOrderStatusHandlerTests
             CustomerId = userId,
             FoodPlaceId = 1,
             DeliveryAddressId = 1,
-            Subtotal = 100,
             ServiceFee = 10,
             DeliveryFee = 5,
-            Total = 115,
             Status = OrderStatuses.pendingConfirmation,
             CreatedAt = DateTime.UtcNow,
+            Items = new List<OrderItem>()
         };
 
         _orderRepositoryMock.Setup(repo => repo.GetOrderById(orderId)).ReturnsAsync(order);

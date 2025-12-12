@@ -242,14 +242,11 @@ public class OrderConfirmationServiceTests
             FoodPlaceId = 1,
             DeliveryAddressId = 2,
             Items = new List<OrderItem>(),
-            Subtotal = 1000,
             ServiceFee = 0,
             DeliveryFee = 200,
-            Total = 1200,
             Delivery = new Delivery
             {
                 Id = 1,
-                AddressId = 2,
                 ConfirmationCode = "Testing",
                 Status = DeliveryStatuses.assigningDriver,
             },

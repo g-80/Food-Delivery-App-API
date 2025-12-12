@@ -10,21 +10,18 @@ public static class OrderTestsHelper
             CustomerId = 1,
             FoodPlaceId = 1,
             DeliveryAddressId = 2,
-            Items = new List<OrderItem>(),
-            Subtotal = 1000,
+            Items = CreateTestOrderItems(),
             ServiceFee = 0,
             DeliveryFee = 200,
-            Total = 1200,
             Delivery = new Delivery
             {
                 Id = 1,
-                AddressId = 2,
                 ConfirmationCode = "Testing",
                 Status = DeliveryStatuses.assigningDriver,
             },
             Payment = new Payment
             {
-                Amount = 1200,
+                Amount = 1400,
                 Status = PaymentStatuses.NotConfirmed,
                 StripePaymentIntentId = "pi_test123",
             },
@@ -44,6 +41,37 @@ public static class OrderTestsHelper
             AddressId = 1,
             Location = new Location { Latitude = 51.505, Longitude = -0.3099 },
         };
+    }
+
+    public static List<FoodPlaceItem> CreateTestFoodPlaceItems()
+    {
+        var items = new List<FoodPlaceItem>();
+        for (int i = 1; i <= 3; i++)
+        {
+            items.Add(new FoodPlaceItem()
+            {
+                Id = i,
+                Name = $"food-place-item-{i}",
+                Price = 400,
+                IsAvailable = true,
+            });
+        }
+        return items;
+    }
+
+    public static List<OrderItem> CreateTestOrderItems()
+    {
+        var items = new List<OrderItem>();
+        for (int i = 1; i <= 3; i++)
+        {
+            items.Add(new OrderItem()
+            {
+                ItemId = i,
+                Quantity = 1,
+                UnitPrice = 400
+            });
+        }
+        return items;
     }
 
     public static List<AvailableDriver> CreateTestAvailableDrivers(int count)

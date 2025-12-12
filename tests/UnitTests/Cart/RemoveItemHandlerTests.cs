@@ -21,7 +21,6 @@ public class RemoveItemHandlerTests
             Subtotal = 0,
             ServiceFee = 0,
             DeliveryFee = 0,
-            Total = 0,
         },
     };
 
@@ -43,7 +42,6 @@ public class RemoveItemHandlerTests
             CartId = 1,
             Quantity = 1,
             UnitPrice = 100,
-            Subtotal = 100,
         };
         _cart.AddItem(item, 1);
 

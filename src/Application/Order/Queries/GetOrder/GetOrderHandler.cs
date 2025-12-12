@@ -58,7 +58,7 @@ public class GetOrderHandler
             DeliveryFee = order.DeliveryFee,
             Total = order.Total,
             Items = order
-                .Items!.Select(item => new OrderItemDTO
+                .Items.Select(item => new OrderItemDTO
                 {
                     ItemId = item.ItemId,
                     ItemName = foodPlace.Items!.FirstOrDefault(i => i.Id == item.ItemId)!.Name,

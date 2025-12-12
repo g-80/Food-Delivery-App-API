@@ -69,7 +69,7 @@ public class OrderCancellationServiceTests
         order.Status.Should().Be(OrderStatuses.cancelled);
         order.Payment.Status.Should().Be(PaymentStatuses.Refunded);
 
-        _paymentServiceMock.Verify(x => x.RefundPayment("pi_test123", 1200), Times.Once);
+        _paymentServiceMock.Verify(x => x.RefundPayment("pi_test123", 1400), Times.Once);
         _paymentServiceMock.Verify(x => x.CancelPaymentIntent(It.IsAny<string>()), Times.Never);
         _orderRepositoryMock.Verify(x => x.UpdateOrderStatus(order), Times.Once);
         _orderRepositoryMock.Verify(

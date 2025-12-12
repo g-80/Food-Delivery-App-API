@@ -96,7 +96,7 @@ public class Cart
             Pricing.UpdatePricing(0, 0, 0);
             return;
         }
-        int serviceFee = 0.1 * subtotal < 50 ? 50 : Convert.ToInt32(0.1 * subtotal);
+        int serviceFee = Math.Max(50, Convert.ToInt32(0.1 * subtotal));
         int deliveryFee = 250;
 
         Pricing.UpdatePricing(subtotal, serviceFee, deliveryFee);

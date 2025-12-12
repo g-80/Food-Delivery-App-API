@@ -37,7 +37,7 @@ public class GetAllUserOrdersHandler
             FoodPlaceName = foodPlace.Name,
             Status = order.Status,
             Total = order.Total,
-            ItemsCount = order.Items!.Count,
+            ItemsCount = order.Items.Count,
             CreatedAt = order.CreatedAt,
         };
     }

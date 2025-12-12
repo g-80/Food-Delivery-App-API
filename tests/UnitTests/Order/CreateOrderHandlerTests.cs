@@ -60,7 +60,6 @@ public class CreateOrderHandlerTests
                 Subtotal = 100,
                 ServiceFee = 0,
                 DeliveryFee = 0,
-                Total = 100,
             },
             Items = new List<CartItem>
             {
@@ -70,7 +69,6 @@ public class CreateOrderHandlerTests
                     ItemId = 1,
                     Quantity = 2,
                     UnitPrice = 50,
-                    Subtotal = 100,
                 },
             },
             FoodPlaceId = 1,
@@ -148,7 +146,6 @@ public class CreateOrderHandlerTests
                 Subtotal = 0,
                 ServiceFee = 0,
                 DeliveryFee = 0,
-                Total = 0,
             },
             Items = new List<CartItem>(),
             FoodPlaceId = 1,

@@ -65,13 +65,10 @@ public class CreateOrderHandler
                         ItemId = item.ItemId,
                         Quantity = item.Quantity,
                         UnitPrice = item.UnitPrice,
-                        Subtotal = item.Subtotal,
                     })
                     .ToList(),
-                Subtotal = cartPricing.Subtotal,
                 ServiceFee = cartPricing.ServiceFee,
                 DeliveryFee = cartPricing.DeliveryFee,
-                Total = cartPricing.Total,
                 CreatedAt = DateTime.UtcNow,
             };
             order.Id = await _ordersRepository.AddOrder(order);

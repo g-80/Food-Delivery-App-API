@@ -22,8 +22,8 @@ public class FoodPlaceRepository : BaseRepository, IFoodPlaceRepository
         const string sql =
             @"
             WITH inserted_location AS (
-                INSERT INTO food_places_locations (latitude, longitude, location)
-                VALUES (@Latitude, @Longitude, ST_SetSRID(ST_MakePoint(@Longitude, @Latitude), 4326))
+                INSERT INTO food_places_locations (location)
+                VALUES (ST_SetSRID(ST_MakePoint(@Longitude, @Latitude), 4326))
                 RETURNING id
             )
             INSERT INTO food_places (name, description, category, address_id, location_id, user_id)
@@ -63,7 +63,8 @@ public class FoodPlaceRepository : BaseRepository, IFoodPlaceRepository
         const string sql =
             @"
             SELECT fp.id, fp.name, fp.description, fp.category, fp.address_id,
-            fpl.latitude, fpl.longitude,
+            ST_Y(fpl.location) AS latitude,
+            ST_X(fpl.location) AS longitude,
             fpi.id, fpi.name, fpi.description, fpi.price, fpi.is_available, fpi.created_at
             FROM food_places fp
             INNER JOIN food_places_locations fpl ON fp.location_id = fpl.id
@@ -121,7 +122,8 @@ public class FoodPlaceRepository : BaseRepository, IFoodPlaceRepository
         const string sql =
             @"
             SELECT fp.id, fp.name, fp.description, fp.category, fp.address_id,
-            fpl.latitude, fpl.longitude,
+            ST_Y(fpl.location) AS latitude,
+            ST_X(fpl.location) AS longitude,
             fpi.id, fpi.name, fpi.description, fpi.price, fpi.is_available, fpi.created_at
             FROM food_places fp
             INNER JOIN food_places_locations fpl ON fp.location_id = fpl.id
@@ -180,7 +182,8 @@ public class FoodPlaceRepository : BaseRepository, IFoodPlaceRepository
         const string sql =
             @"
             SELECT fp.id, fp.name, fp.description, fp.category, fp.address_id,
-            fpl.latitude, fpl.longitude,
+            ST_Y(fpl.location) AS latitude,
+            ST_X(fpl.location) AS longitude,
             fpi.id, fpi.name, fpi.description, fpi.price, fpi.is_available, fpi.created_at
             FROM food_places fp
             INNER JOIN food_places_locations fpl ON fp.location_id = fpl.id
@@ -258,7 +261,8 @@ public class FoodPlaceRepository : BaseRepository, IFoodPlaceRepository
         const string sql =
             @"
             SELECT fp.id, fp.name, fp.description, fp.category, fp.address_id,
-            fpl.latitude, fpl.longitude,
+            ST_Y(fpl.location) AS latitude,
+            ST_X(fpl.location) AS longitude,
             ST_Distance(fpl.location::geography, ST_POINT(@Longitude, @Latitude, 4326)::geography) AS distance
             FROM food_places fp
             INNER JOIN food_places_locations fpl ON fp.location_id = fpl.id
@@ -304,7 +308,8 @@ public class FoodPlaceRepository : BaseRepository, IFoodPlaceRepository
         const string sql =
             @"
             SELECT fp.id, fp.name, fp.description, fp.category, fp.address_id,
-            fpl.latitude, fpl.longitude,
+            ST_Y(fpl.location) AS latitude,
+            ST_X(fpl.location) AS longitude,
             ST_Distance(fpl.location::geography, ST_POINT(@Longitude, @Latitude, 4326)::geography) AS distance
             FROM food_places fp
             INNER JOIN food_places_locations fpl ON fp.location_id = fpl.id

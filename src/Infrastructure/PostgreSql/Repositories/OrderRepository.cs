@@ -14,32 +14,28 @@ public class OrderRepository : BaseRepository, IOrderRepository
         parameters.Add("CustomerId", order.CustomerId);
         parameters.Add("FoodPlaceId", order.FoodPlaceId);
         parameters.Add("DeliveryAddressId", order.DeliveryAddressId);
-        parameters.Add("Subtotal", order.Subtotal);
         parameters.Add("ServiceFee", order.ServiceFee);
         parameters.Add("DeliveryFee", order.DeliveryFee);
-        parameters.Add("Total", order.Total);
         parameters.Add("Status", order.Status);
         parameters.Add("CreatedAt", order.CreatedAt);
-        parameters.Add("ItemIds", order.Items!.Select(x => x.ItemId).ToArray());
-        parameters.Add("Quantities", order.Items!.Select(x => x.Quantity).ToArray());
-        parameters.Add("UnitPrices", order.Items!.Select(x => x.UnitPrice).ToArray());
-        parameters.Add("Subtotals", order.Items!.Select(x => x.Subtotal).ToArray());
+        parameters.Add("ItemIds", order.Items.Select(x => x.ItemId).ToArray());
+        parameters.Add("Quantities", order.Items.Select(x => x.Quantity).ToArray());
+        parameters.Add("UnitPrices", order.Items.Select(x => x.UnitPrice).ToArray());
 
         var sql =
             @"
         WITH inserted_order AS (
-            INSERT INTO orders(customer_id, food_place_id, delivery_address_id, subtotal, service_fee, delivery_fee, total, status, created_at)
+            INSERT INTO orders(customer_id, food_place_id, delivery_address_id, service_fee, delivery_fee, status, created_at)
             VALUES
-            (@CustomerId, @FoodPlaceId, @DeliveryAddressId, @Subtotal, @ServiceFee, @DeliveryFee, @Total, @Status, @CreatedAt)
+            (@CustomerId, @FoodPlaceId, @DeliveryAddressId, @ServiceFee, @DeliveryFee, @Status, @CreatedAt)
             RETURNING id
         )
-        INSERT INTO order_items (order_id, item_id, quantity, unit_price, subtotal)
-        SELECT 
-            (SELECT id FROM inserted_order), 
-            unnest(@ItemIds::int[]), 
-            unnest(@Quantities::int[]), 
-            unnest(@UnitPrices::int[]), 
-            unnest(@Subtotals::int[])
+        INSERT INTO order_items (order_id, item_id, quantity, unit_price)
+        SELECT
+            (SELECT id FROM inserted_order),
+            unnest(@ItemIds::int[]),
+            unnest(@Quantities::int[]),
+            unnest(@UnitPrices::int[])
         RETURNING (SELECT id FROM inserted_order);
         ";
 
@@ -54,10 +50,9 @@ public class OrderRepository : BaseRepository, IOrderRepository
         var parameters = new { CustomerId = customerId };
         const string sql =
             @"
-            SELECT 
-            o.id, o.customer_id, o.food_place_id, o.delivery_address_id, o.subtotal,
-            o.service_fee, o.delivery_fee, o.total, o.status, o.created_at,
-            oi.item_id, oi.quantity, oi.unit_price, oi.subtotal
+            SELECT
+            o.id, o.customer_id, o.food_place_id, o.delivery_address_id, o.service_fee, o.delivery_fee, o.status, o.created_at,
+            oi.item_id, oi.quantity, oi.unit_price
             FROM orders o
             INNER JOIN order_items oi ON o.id = oi.order_id
             WHERE o.customer_id = @CustomerId
@@ -79,13 +74,11 @@ public class OrderRepository : BaseRepository, IOrderRepository
                             CustomerId = order.CustomerId,
                             FoodPlaceId = order.FoodPlaceId,
                             DeliveryAddressId = order.DeliveryAddressId,
-                            Subtotal = order.Subtotal,
                             ServiceFee = order.ServiceFee,
                             DeliveryFee = order.DeliveryFee,
-                            Total = order.Total,
                             Status = order.Status,
                             CreatedAt = order.CreatedAt,
-                            Items = new List<OrderItem>() { item },
+                            Items = new List<OrderItem>() { item }.AsReadOnly(),
                         };
                     }
                     else
@@ -96,13 +89,11 @@ public class OrderRepository : BaseRepository, IOrderRepository
                             CustomerId = order.CustomerId,
                             FoodPlaceId = order.FoodPlaceId,
                             DeliveryAddressId = order.DeliveryAddressId,
-                            Subtotal = order.Subtotal,
                             ServiceFee = order.ServiceFee,
                             DeliveryFee = order.DeliveryFee,
-                            Total = order.Total,
                             Status = order.Status,
                             CreatedAt = order.CreatedAt,
-                            Items = new List<OrderItem>(currentOrder.Items!) { item },
+                            Items = new List<OrderItem>(currentOrder.Items) { item }.AsReadOnly(),
                         };
                     }
 
@@ -122,10 +113,9 @@ public class OrderRepository : BaseRepository, IOrderRepository
         const string sql =
             @"
             SELECT
-            o.id, o.customer_id, o.food_place_id, o.delivery_address_id, o.subtotal,
-            o.service_fee, o.delivery_fee, o.total, o.status, o.created_at,
-            oi.item_id, oi.quantity, oi.unit_price, oi.subtotal,
-            d.id, d.address_id, d.driver_id, d.confirmation_code, d.status, d.delivered_at, d.route, d.payment_amount,
+            o.id, o.customer_id, o.food_place_id, o.delivery_address_id, o.service_fee, o.delivery_fee, o.status, o.created_at,
+            oi.item_id, oi.quantity, oi.unit_price,
+            d.id, d.driver_id, d.confirmation_code, d.status, d.delivered_at, d.route, d.payment_amount,
             p.amount, p.stripe_payment_intent_id, p.status
             FROM orders o
             INNER JOIN order_items oi ON o.id = oi.order_id
@@ -155,7 +145,6 @@ public class OrderRepository : BaseRepository, IOrderRepository
                         var delivery = new Delivery
                         {
                             Id = deliveryDto.Id,
-                            AddressId = deliveryDto.AddressId,
                             DriverId = deliveryDto.DriverId,
                             ConfirmationCode = deliveryDto.ConfirmationCode,
                             Status = deliveryDto.Status,
@@ -179,10 +168,8 @@ public class OrderRepository : BaseRepository, IOrderRepository
                             CustomerId = order.CustomerId,
                             FoodPlaceId = order.FoodPlaceId,
                             DeliveryAddressId = order.DeliveryAddressId,
-                            Subtotal = order.Subtotal,
                             ServiceFee = order.ServiceFee,
                             DeliveryFee = order.DeliveryFee,
-                            Total = order.Total,
                             Status = order.Status,
                             CreatedAt = order.CreatedAt,
                             Items = new List<OrderItem>(),
@@ -204,10 +191,8 @@ public class OrderRepository : BaseRepository, IOrderRepository
                 CustomerId = result.CustomerId,
                 FoodPlaceId = result.FoodPlaceId,
                 DeliveryAddressId = result.DeliveryAddressId,
-                Subtotal = result.Subtotal,
                 ServiceFee = result.ServiceFee,
                 DeliveryFee = result.DeliveryFee,
-                Total = result.Total,
                 Status = result.Status,
                 CreatedAt = result.CreatedAt,
                 Items = items.AsReadOnly(),
@@ -241,15 +226,14 @@ public class OrderRepository : BaseRepository, IOrderRepository
         var parameters = new
         {
             OrderId = orderId,
-            delivery.AddressId,
             delivery.ConfirmationCode,
             delivery.Status,
         };
 
         const string sql =
             @"
-            INSERT INTO deliveries(order_id, address_id, confirmation_code, status)
-            VALUES (@OrderId, @AddressId, @ConfirmationCode, @Status)
+            INSERT INTO deliveries(order_id, confirmation_code, status)
+            VALUES (@OrderId, @ConfirmationCode, @Status)
             RETURNING id
         ";
         using (var connection = new NpgsqlConnection(_connectionString))
@@ -356,10 +340,8 @@ public class OrderRepository : BaseRepository, IOrderRepository
         public required int CustomerId { get; init; }
         public required int FoodPlaceId { get; init; }
         public required int DeliveryAddressId { get; init; }
-        public required int Subtotal { get; init; }
         public required int ServiceFee { get; init; }
         public required int DeliveryFee { get; set; }
-        public required int Total { get; init; }
         public required OrderStatuses Status { get; set; }
         public required DateTime CreatedAt { get; init; }
     }
@@ -367,7 +349,6 @@ public class OrderRepository : BaseRepository, IOrderRepository
     private class QueriedDeliveryDTO
     {
         public int Id { get; init; }
-        public required int AddressId { get; init; }
         public int DriverId { get; set; }
         public required string ConfirmationCode { get; init; }
         public required DeliveryStatuses Status { get; set; }

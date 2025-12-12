@@ -13,9 +13,8 @@ public class CartItem
                 throw new ArgumentException("Quantity cannot be less than one");
             }
             _quantity = value;
-            Subtotal = UnitPrice * _quantity;
         }
     }
     public required int UnitPrice { get; init; }
-    public required int Subtotal { get; set; }
+    public int Subtotal => UnitPrice * Quantity;
 }

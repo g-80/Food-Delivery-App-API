@@ -18,8 +18,8 @@ public class CartRepository : BaseRepository, ICartRepository
             VALUES (@CustomerId)
             RETURNING id
             )
-            INSERT INTO cart_pricings (cart_id, subtotal, service_fee, delivery_fee, total)
-            VALUES ((SELECT id FROM inserted_cart), 0, 0, 0, 0)
+            INSERT INTO cart_pricings (cart_id, service_fee, delivery_fee)
+            VALUES ((SELECT id FROM inserted_cart), 0, 0)
         ";
 
         using (var connection = new NpgsqlConnection(_connectionString))
@@ -35,17 +35,16 @@ public class CartRepository : BaseRepository, ICartRepository
         const string sql =
             @"
             SELECT c.id, c.customer_id, c.expires_at, fpi.food_place_id,
-            c.id AS cart_id, cp.subtotal, cp.service_fee, cp.delivery_fee, cp.total,
-            c.id AS cart_id, ci.item_id, ci.quantity, ci.unit_price, ci.subtotal
+            c.id AS cart_id, cp.service_fee, cp.delivery_fee, ci.unit_price * ci.quantity AS subtotal,
+            c.id AS cart_id, ci.item_id, ci.quantity, ci.unit_price
             FROM carts c
             INNER JOIN cart_pricings cp ON c.id = cp.cart_id
             LEFT JOIN cart_items ci ON c.id = ci.cart_id
-            LEFT JOIN food_places_items fpi ON ci.item_id = fpi.id 
+            LEFT JOIN food_places_items fpi ON ci.item_id = fpi.id
             WHERE c.customer_id = @CustomerId
         ";
 
         Cart? cart = null;
-        CartPricing? pricing = null;
         var items = new List<CartItem>();
         using (var connection = new NpgsqlConnection(_connectionString))
         {
@@ -64,7 +63,6 @@ public class CartRepository : BaseRepository, ICartRepository
                             FoodPlaceId = c.FoodPlaceId,
                             Items = new List<CartItem>(),
                         };
-                        pricing = p;
                     }
                     // itemId = 0 means the cart is empty and it was a null in the table
                     if (i.ItemId != 0)
@@ -82,7 +80,7 @@ public class CartRepository : BaseRepository, ICartRepository
             Id = cart!.Id,
             CustomerId = cart.CustomerId,
             ExpiresAt = cart.ExpiresAt,
-            Pricing = pricing!,
+            Pricing = cart.Pricing,
             FoodPlaceId = cart.FoodPlaceId,
             Items = items,
         };
@@ -93,10 +91,8 @@ public class CartRepository : BaseRepository, ICartRepository
         var parameters = new DynamicParameters();
         parameters.Add("CartId", cart.Id);
         parameters.Add("ExpiresAt", cart.ExpiresAt);
-        parameters.Add("Subtotal", cart.Pricing.Subtotal);
         parameters.Add("ServiceFee", cart.Pricing.ServiceFee);
         parameters.Add("DeliveryFee", cart.Pricing.DeliveryFee);
-        parameters.Add("Total", cart.Pricing.Total);
 
         string sql;
 
@@ -105,23 +101,20 @@ public class CartRepository : BaseRepository, ICartRepository
             parameters.Add("ItemIds", cart.Items.Select(x => x.ItemId).ToArray());
             parameters.Add("Quantities", cart.Items.Select(x => x.Quantity).ToArray());
             parameters.Add("UnitPrices", cart.Items.Select(x => x.UnitPrice).ToArray());
-            parameters.Add("Subtotals", cart.Items.Select(x => x.Subtotal).ToArray());
 
             sql =
                 @"
-                INSERT INTO cart_items (cart_id, item_id, quantity, unit_price, subtotal)
-                SELECT @CartId, 
-                    unnest(@ItemIds::int[]), 
-                    unnest(@Quantities::int[]), 
-                    unnest(@UnitPrices::int[]), 
-                    unnest(@Subtotals::int[])
-                ON CONFLICT (cart_id, item_id) 
-                DO UPDATE SET 
+                INSERT INTO cart_items (cart_id, item_id, quantity, unit_price)
+                SELECT @CartId,
+                    unnest(@ItemIds::int[]),
+                    unnest(@Quantities::int[]),
+                    unnest(@UnitPrices::int[])
+                ON CONFLICT (cart_id, item_id)
+                DO UPDATE SET
                     quantity = EXCLUDED.quantity,
-                    unit_price = EXCLUDED.unit_price,
-                    subtotal = EXCLUDED.subtotal;
+                    unit_price = EXCLUDED.unit_price;
 
-                DELETE FROM cart_items 
+                DELETE FROM cart_items
                 WHERE cart_id = @CartId AND item_id != ALL(@ItemIds);";
         }
         else
@@ -133,13 +126,11 @@ public class CartRepository : BaseRepository, ICartRepository
 
         sql +=
             @"UPDATE cart_pricings
-                SET subtotal = @Subtotal,
-                    service_fee = @ServiceFee,
-                    delivery_fee = @DeliveryFee,
-                    total = @Total
+                SET service_fee = @ServiceFee,
+                    delivery_fee = @DeliveryFee
                 WHERE cart_id = @CartId;
 
-                UPDATE carts 
+                UPDATE carts
                 SET expires_at = @ExpiresAt
                 WHERE id = @CartId";
 

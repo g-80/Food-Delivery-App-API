@@ -38,7 +38,6 @@ public class AddItemHandler
                 ItemId = req.ItemId,
                 Quantity = req.Quantity,
                 UnitPrice = item!.Price,
-                Subtotal = req.Quantity * item.Price,
             },
             foodPlace.Id
         );

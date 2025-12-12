@@ -166,7 +166,7 @@ public class OrderConfirmationService : IOrderConfirmationService
         {
             OrderId = order.Id,
             CustomerName = $"{customer!.FirstName} {customer.Surname}",
-            OrderItems = order.Items!.Select(item => new OrderConfirmationItemDTO
+            OrderItems = order.Items.Select(item => new OrderConfirmationItemDTO
             {
                 ItemName = foodPlace!.Items!.FirstOrDefault(i => i.Id == item.ItemId)!.Name,
                 Quantity = item.Quantity,
