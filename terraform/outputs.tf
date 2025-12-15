@@ -35,3 +35,9 @@ output "app_secrets_arn" {
 output "ecr_repository_url" {
   value = aws_ecr_repository.app.repository_url
 }
+
+output "redis_endpoint_address" {
+  description = "ElastiCache Redis primary endpoint address"
+  value       = aws_elasticache_replication_group.redis.primary_endpoint_address
+  sensitive   = true
+}

@@ -10,8 +10,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
-      - ConnectionStrings__DefaultConnection=Host=db;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__Postgres=Host=db;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__Redis=redis:6379
       - Stripe__SecretKey=${STRIPE_SECRET_KEY}
       - Jwt__Key=${JWT_SIGNING_KEY}
       - MapBox__AccessToken=${MAPBOX_ACCESS_TOKEN}
@@ -38,5 +41,21 @@ services:
       retries: 5
     restart: on-failure
 
+  redis:
+    image: redis:8
+    container_name: redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --appendfsync everysec
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: on-failure
+
 volumes:
   pgdata:
+  redis_data:

@@ -129,3 +129,9 @@ variable "log_level" {
   type        = string
   default     = "info"
 }
+
+variable "elasticache_num_nodes" {
+  description = "Number of ElastiCache nodes (2+ enables multi-AZ)"
+  type        = number
+  default     = 1
+}

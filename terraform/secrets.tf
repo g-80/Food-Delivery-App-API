@@ -17,9 +17,9 @@ resource "aws_secretsmanager_secret_version" "db_credentials" {
   secret_string = jsonencode({
     engine   = "postgres"
     connection_string = "Host=${aws_db_instance.postgres.address};Port=${aws_db_instance.postgres.port};Username=${var.db_username};Password=${var.db_password};Database=${var.db_name}"
+    redis_connection_string = "${aws_elasticache_replication_group.redis.primary_endpoint_address}:${aws_elasticache_replication_group.redis.port}"
   })
 }
-
 # IAM policy to allow ECS task to read the secret
 resource "aws_iam_role_policy" "ecs_task_execution_secrets" {
   name = "${var.project_name}-ecs-secrets-policy"

@@ -191,6 +191,31 @@ resource "aws_security_group" "rds" {
   }
 }
 
+resource "aws_security_group" "elasticache" {
+  name_prefix = "${var.project_name}-elasticache-"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ecs_instance.id]
+    description     = "Allow Redis traffic from ECS instances"
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.project_name}-elasticache-sg"
+  }
+}
+
+
 # IAM Roles
 resource "aws_iam_role" "ecs_instance_role" {
   name = "${var.project_name}-ecs-instance-role"
@@ -471,6 +496,68 @@ resource "aws_db_instance" "postgres" {
   }
 }
 
+# ElastiCache Subnet Group
+resource "aws_elasticache_subnet_group" "redis" {
+  name       = "${var.project_name}-redis-subnet-group"
+  subnet_ids = [aws_subnet.private_1.id, aws_subnet.private_2.id]
+
+  tags = {
+    Name = "${var.project_name}-redis-subnet-group"
+  }
+}
+
+# ElastiCache Parameter Group for Redis with AOF
+resource "aws_elasticache_parameter_group" "redis" {
+  name   = "${var.project_name}-redis-params"
+  family = "redis7"
+
+  # Enable AOF persistence
+  parameter {
+    name  = "appendonly"
+    value = "yes"
+  }
+
+  parameter {
+    name  = "appendfsync"
+    value = "everysec"
+  }
+
+  tags = {
+    Name = "${var.project_name}-redis-params"
+  }
+}
+
+# ElastiCache Replication Group (Redis)
+resource "aws_elasticache_replication_group" "redis" {
+  replication_group_id       = "${var.project_name}-redis"
+  description                = "Redis cluster for ${var.project_name}"
+  engine                     = "redis"
+  engine_version             = "7.1"
+  node_type                  = "cache.t3.micro"
+  num_cache_clusters         = var.elasticache_num_nodes
+  port                       = 6379
+  parameter_group_name       = aws_elasticache_parameter_group.redis.name
+  subnet_group_name          = aws_elasticache_subnet_group.redis.name
+  security_group_ids         = [aws_security_group.elasticache.id]
+
+  # AOF Persistence
+  snapshot_retention_limit = 5
+  snapshot_window          = "03:00-05:00"
+
+  automatic_failover_enabled = var.elasticache_num_nodes > 1
+  multi_az_enabled           = var.elasticache_num_nodes > 1
+
+  at_rest_encryption_enabled = true
+  transit_encryption_enabled = true
+
+  apply_immediately = false
+
+  tags = {
+    Name = "${var.project_name}-redis"
+  }
+}
+
+
 resource "aws_ecr_repository" "app" {
   name                 = "${var.project_name}-repository"
   image_tag_mutability = "IMMUTABLE"
@@ -531,8 +618,12 @@ resource "aws_ecs_task_definition" "app" {
       # Use Secrets Manager for sensitive data
       secrets = [
         {
-          name      = "ConnectionStrings__DefaultConnection"
+          name      = "ConnectionStrings__Postgres"
           valueFrom = "${aws_secretsmanager_secret.db_credentials.arn}:connection_string::"
+        },
+        {
+          name      = "ConnectionStrings__Redis"
+          valueFrom = "${aws_secretsmanager_secret.db_credentials.arn}:redis_connection_string::"
         },
         {
           name      = "Jwt__Key"

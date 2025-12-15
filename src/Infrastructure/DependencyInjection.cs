@@ -5,11 +5,19 @@ public static class DependencyInjection
     public static void AddInfrastructureServices(this IHostApplicationBuilder builder)
     {
         string connectionString =
-            builder.Configuration.GetConnectionString("DefaultConnection")
+            builder.Configuration.GetConnectionString("Postgres")
             ?? throw new Exception("Could not read the database ConnectionString");
         builder.Services.Configure<DatabaseOptions>(options =>
             options.ConnectionString = connectionString
         );
+
+        string redisConnetionString =
+            builder.Configuration.GetConnectionString("Redis")
+            ?? throw new Exception("Could not read redis connection string");
+        builder.Services.Configure<RedisOptions>(options =>
+            options.ConnectionString = redisConnetionString
+        );
+        builder.Services.AddSingleton<RedisConnectionFactory>();
 
         builder.Services.AddScoped<IAddressRepository, AddressRepository>();
         builder.Services.AddScoped<ICartRepository, CartRepository>();
