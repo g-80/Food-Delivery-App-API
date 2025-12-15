@@ -1,12 +1,12 @@
 public interface IJourneyCalculationService
 {
-    Task<MapboxRoute> CalculateRouteAsync(
-        Location startLocation,
-        Location endLocation,
+    Task<(MapboxRouteInfo, string)> CalculateRouteAsync(
+        Location[] locations,
         CancellationToken cancellationToken = default
     );
 
-    Task<Location?> GeocodeAddressAsync(string address, CancellationToken cancellationToken = default);
-
-    MapboxRoute CreateCombinedRoute(MapboxRoute driverToFoodPlace, MapboxRoute foodPlaceToCustomer);
+    Task<Location?> GeocodeAddressAsync(
+        string address,
+        CancellationToken cancellationToken = default
+    );
 }

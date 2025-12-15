@@ -61,7 +61,9 @@ public class DriverRepository : BaseRepository, IDriverRepository
             @"
         SELECT 
             u.id,
-            ST_Distance(dl.location, ST_SetSRID(ST_Point(@longitude, @latitude), 4326)::geography) AS distance
+            ST_Distance(dl.location, ST_SetSRID(ST_Point(@longitude, @latitude), 4326)::geography) AS distance,
+            ST_Y(dl.location) AS Latitude,
+            ST_X(dl.location) AS Longitude
         FROM 
             users u
         INNER JOIN
@@ -81,7 +83,16 @@ public class DriverRepository : BaseRepository, IDriverRepository
         ";
         using (var connection = new NpgsqlConnection(_connectionString))
         {
-            return await connection.QueryAsync<AvailableDriver>(sql, parameters);
+            return await connection.QueryAsync<AvailableDriver, Location, AvailableDriver>(
+                sql,
+                (driver, loc) =>
+                {
+                    driver.Location = loc;
+                    return driver;
+                },
+                parameters,
+                splitOn: "Latitude"
+            );
         }
         ;
     }

@@ -6,5 +6,6 @@ public class DeliveryAssignmentJob
     public int CurrentAttempt { get; set; } = 0;
     public int AssignedDriverId { get; set; } = 0;
     public ConcurrentDictionary<int, CancellationTokenSource> PendingOffers { get; set; } = new();
-    public Dictionary<int, MapboxRoute> DriversRoutes { get; set; } = new();
+    public Dictionary<int, string> DriversRoutes { get; set; } = new();
+    public Dictionary<int, int> DriversPayments { get; set; } = new();
 }

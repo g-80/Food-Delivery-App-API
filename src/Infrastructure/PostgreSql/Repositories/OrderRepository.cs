@@ -126,6 +126,7 @@ public class OrderRepository : BaseRepository, IOrderRepository
 
         Order? result = null;
         List<OrderItem> items = new();
+        Delivery? delivery = null;
         using (var connection = new NpgsqlConnection(_connectionString))
         {
             // <type to map the first part to, type to map the second part to, return type of the lambda>
@@ -142,25 +143,19 @@ public class OrderRepository : BaseRepository, IOrderRepository
                     // This will run for each row returned by the query.
                     if (result == null)
                     {
-                        var delivery = new Delivery
+                        if (deliveryDto != null)
                         {
-                            Id = deliveryDto.Id,
-                            DriverId = deliveryDto.DriverId,
-                            ConfirmationCode = deliveryDto.ConfirmationCode,
-                            Status = deliveryDto.Status,
-                            DeliveredAt = deliveryDto.DeliveredAt,
-                            Route =
-                                deliveryDto.Route != null
-                                    ? JsonSerializer.Deserialize<MapboxRoute>(
-                                        deliveryDto.Route,
-                                        new JsonSerializerOptions
-                                        {
-                                            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-                                        }
-                                    )
-                                    : null,
-                            PaymentAmount = deliveryDto.PaymentAmount,
-                        };
+                            delivery = new Delivery
+                            {
+                                Id = deliveryDto.Id,
+                                DriverId = deliveryDto.DriverId,
+                                ConfirmationCode = deliveryDto.ConfirmationCode,
+                                Status = deliveryDto.Status,
+                                DeliveredAt = deliveryDto.DeliveredAt,
+                                RouteJson = deliveryDto.Route,
+                                PaymentAmount = deliveryDto.PaymentAmount,
+                            };
+                        }
 
                         result = new Order
                         {
@@ -262,16 +257,7 @@ public class OrderRepository : BaseRepository, IOrderRepository
 
     public async Task UpdateDelivery(int orderId, Delivery delivery)
     {
-        var routeJson =
-            delivery.Route != null
-                ? JsonSerializer.Serialize(
-                    delivery.Route,
-                    new JsonSerializerOptions
-                    {
-                        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-                    }
-                )
-                : null;
+        var routeJson = delivery.RouteJson;
 
         var parameters = new
         {

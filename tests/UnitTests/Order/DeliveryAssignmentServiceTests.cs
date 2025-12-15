@@ -87,16 +87,9 @@ public class DeliveryAssignmentServiceTests
             .ReturnsAsync(OrderTestsHelper.CreateTestLocation());
         _mockJourneyCalculationService
             .Setup(x =>
-                x.CalculateRouteAsync(
-                    It.IsAny<Location>(),
-                    It.IsAny<Location>(),
-                    It.IsAny<CancellationToken>()
-                )
+                x.CalculateRouteAsync(It.IsAny<Location[]>(), It.IsAny<CancellationToken>())
             )
             .ReturnsAsync(OrderTestsHelper.CreateTestMapboxRoute());
-        _mockJourneyCalculationService
-            .Setup(x => x.CreateCombinedRoute(It.IsAny<MapboxRoute>(), It.IsAny<MapboxRoute>()))
-            .Returns(OrderTestsHelper.CreateTestMapboxRoute());
         _mockDriverPaymentService
             .Setup(x => x.CalculatePayment(It.IsAny<double>(), It.IsAny<double>()))
             .Returns(500);
@@ -177,9 +170,10 @@ public class DeliveryAssignmentServiceTests
         var job = OrderTestsHelper.CreateTestDeliveryAssignmentJob(orderId);
         var driver = OrderTestsHelper.CreateTestAvailableDriver(driverId);
         var order = OrderTestsHelper.CreateTestOrder(orderId);
-        var testRoute = OrderTestsHelper.CreateTestMapboxRoute();
-        // Add route to job to simulate it being stored during offer creation
-        job.DriversRoutes[driverId] = testRoute;
+        var (_, json) = OrderTestsHelper.CreateTestMapboxRoute();
+        // Add route and payment amound to job to simulate them being stored during offer creation
+        job.DriversRoutes[driverId] = json;
+        job.DriversPayments[driverId] = 500;
 
         _mockDeliveriesAssignments.Setup(x => x.GetAssignmentJob(orderId)).Returns(job);
         _mockDriverRepository.Setup(x => x.GetDriverById(driverId)).ReturnsAsync(driver);
@@ -196,7 +190,7 @@ public class DeliveryAssignmentServiceTests
         driver.Status.Should().Be(DriverStatuses.delivering);
         order.Delivery!.DriverId.Should().Be(driverId);
         order.Delivery.Status.Should().Be(DeliveryStatuses.pickup);
-        order.Delivery.Route.Should().Be(testRoute);
+        order.Delivery.RouteJson.Should().Be(json);
         order.Delivery.PaymentAmount.Should().Be(500);
 
         _mockDriverRepository.Verify(x => x.UpdateDriverStatus(driver), Times.Once);

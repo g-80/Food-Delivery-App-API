@@ -19,68 +19,50 @@ public class MapboxJourneyCalculationService : IJourneyCalculationService
         _logger = logger;
     }
 
-    public async Task<MapboxRoute> CalculateRouteAsync(
-        Location startLocation,
-        Location endLocation,
+    public async Task<(MapboxRouteInfo, string)> CalculateRouteAsync(
+        Location[] locations,
         CancellationToken cancellationToken = default
     )
     {
         try
         {
-            var coordinates =
-                $"{startLocation.Longitude},{startLocation.Latitude};{endLocation.Longitude},{endLocation.Latitude}";
+            if (locations.Length == 0)
+            {
+                throw new ArgumentException("Delivery route coordinates cannot be empty");
+            }
+
+            var coordinates = string.Join(
+                ";",
+                locations.Select(loc => $"{loc.Longitude},{loc.Latitude}")
+            );
             var accessToken =
-                _configuration["MapboxAccessToken"]
+                _configuration["Mapbox:AccessToken"]
                 ?? throw new InvalidOperationException("MapboxAccessToken not configured");
             var url =
-                @$"{BaseUrl}/{coordinates}?access_token={accessToken}&geometries=geojson&steps=true&alternatives=false
-                &voice_instructions=true&voice_units=metric&banner_instructions=true&language=en&overview=full";
+                $"{BaseUrl}/{coordinates}?access_token={accessToken}&geometries=geojson&steps=true&"
+                + "voice_instructions=true&voice_units=metric&banner_instructions=true&language=en&overview=full";
 
             var response = await _httpClient.GetAsync(url, cancellationToken);
             response.EnsureSuccessStatusCode();
 
-            var jsonContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            var mapboxResponse = JsonSerializer.Deserialize<MapboxDirectionsResponse>(
-                jsonContent,
-                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower }
+            var jsonString = await response.Content.ReadAsStringAsync(cancellationToken);
+            var res = JsonSerializer.Deserialize<MapboxDirectionsResponse>(
+                jsonString,
+                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
             );
 
-            if (mapboxResponse?.Routes == null || !mapboxResponse.Routes.Any())
+            if (res?.Routes == null || !res.Routes.Any())
             {
                 throw new InvalidOperationException("No routes returned from Mapbox API");
             }
 
-            var route = mapboxResponse.Routes.First();
-            return route;
+            return (res.Routes[0], jsonString);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error calculating route from Mapbox API");
             throw;
         }
-    }
-
-    public MapboxRoute CreateCombinedRoute(MapboxRoute driverToFoodPlace, MapboxRoute foodPlaceToCustomer)
-    {
-        var combinedCoordinates = driverToFoodPlace.Geometry.Coordinates
-            .Concat(foodPlaceToCustomer.Geometry.Coordinates.Skip(1))
-            .ToArray();
-
-        var combinedLegs = driverToFoodPlace.Legs
-            .Concat(foodPlaceToCustomer.Legs)
-            .ToArray();
-
-        return new MapboxRoute
-        {
-            Distance = driverToFoodPlace.Distance + foodPlaceToCustomer.Distance,
-            Duration = driverToFoodPlace.Duration + foodPlaceToCustomer.Duration,
-            Geometry = new MapboxGeometry
-            {
-                Type = "LineString",
-                Coordinates = combinedCoordinates
-            },
-            Legs = combinedLegs
-        };
     }
 
     public async Task<Location?> GeocodeAddressAsync(
@@ -91,7 +73,7 @@ public class MapboxJourneyCalculationService : IJourneyCalculationService
         try
         {
             var accessToken =
-                _configuration["MapboxAccessToken"]
+                _configuration["Mapbox:AccessToken"]
                 ?? throw new InvalidOperationException("MapboxAccessToken not configured");
             var encodedAddress = Uri.EscapeDataString(address);
             var url =

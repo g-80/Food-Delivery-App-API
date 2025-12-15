@@ -88,7 +88,7 @@ CREATE TABLE public.food_places (
     category character varying(100) NOT NULL,
     description text,
     search_vector tsvector,
-    location_id integer NOT NULL REFERENCES food_places_locations(id) ON DELETE CASCADE,
+    location_id integer NOT NULL REFERENCES food_places_locations(id) ON DELETE RESTRICT,
     address_id integer REFERENCES addresses(id) ON DELETE RESTRICT,
     user_id integer NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
