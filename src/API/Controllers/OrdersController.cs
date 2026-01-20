@@ -16,6 +16,7 @@ public class OrdersController : ControllerBase
     private readonly IUserContextService _userContextService;
     private readonly ILogger<OrdersController> _logger;
     private readonly IConfiguration _config;
+    private readonly IWebHostEnvironment _environment;
 
     public OrdersController(
         GetOrderHandler getOrderHandler,
@@ -27,7 +28,8 @@ public class OrdersController : ControllerBase
         IOrderConfirmationService orderConfirmationService,
         IUserContextService userContextService,
         ILogger<OrdersController> logger,
-        IConfiguration configuration
+        IConfiguration configuration,
+        IWebHostEnvironment environment
     )
     {
         _getOrderHandler = getOrderHandler;
@@ -40,6 +42,7 @@ public class OrdersController : ControllerBase
         _userContextService = userContextService;
         _logger = logger;
         _config = configuration;
+        _environment = environment;
     }
 
     [Authorize(Roles = nameof(UserTypes.customer))]
@@ -65,13 +68,21 @@ public class OrdersController : ControllerBase
     public async Task<IActionResult> HandleStripeWebhook()
     {
         var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
-        string endpointSecret = _config.GetValue<string>("Stripe:WebhookSecret")!;
         try
         {
-            var stripeEvent = EventUtility.ParseEvent(json);
-            var signatureHeader = Request.Headers["Stripe-Signature"];
-
-            stripeEvent = EventUtility.ConstructEvent(json, signatureHeader, endpointSecret);
+            Event stripeEvent;
+            if (_environment.IsEnvironment("Test"))
+            {
+                stripeEvent = EventUtility.ParseEvent(json);
+            }
+            else
+            {
+                var signatureHeader = Request.Headers["Stripe-Signature"];
+                string endpointSecret =
+                    _config.GetValue<string>("Stripe:WebhookSecret")
+                    ?? throw new Exception("Stripe webhook secret not found");
+                stripeEvent = EventUtility.ConstructEvent(json, signatureHeader, endpointSecret);
+            }
 
             if (stripeEvent.Type == EventTypes.PaymentIntentSucceeded)
             {

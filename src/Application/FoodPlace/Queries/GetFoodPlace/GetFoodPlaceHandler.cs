@@ -7,12 +7,12 @@ public class GetFoodPlaceHandler
         _foodPlaceRepository = foodPlaceRepository;
     }
 
-    public async Task<FoodPlaceDTO> Handle(int id)
+    public async Task<FoodPlaceDTO?> Handle(int id)
     {
         var foodPlace = await _foodPlaceRepository.GetFoodPlaceById(id);
         if (foodPlace == null)
         {
-            throw new InvalidOperationException($"Food place with ID {id} not found.");
+            return null;
         }
 
         return new FoodPlaceDTO

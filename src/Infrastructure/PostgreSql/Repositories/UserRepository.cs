@@ -26,6 +26,7 @@ public class UserRepository : BaseRepository, IUserRepository
         ";
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             return await connection.ExecuteScalarAsync<int>(sql, parameters);
         }
         ;
@@ -42,6 +43,7 @@ public class UserRepository : BaseRepository, IUserRepository
             ";
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             return await connection.QuerySingleOrDefaultAsync<User>(sql, parameters);
         }
         ;
@@ -58,6 +60,7 @@ public class UserRepository : BaseRepository, IUserRepository
             ";
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             return await connection.QuerySingleOrDefaultAsync<User>(sql, parameters);
         }
         ;
@@ -82,6 +85,7 @@ public class UserRepository : BaseRepository, IUserRepository
         ";
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             int rowsAffected = await connection.ExecuteAsync(sql, parameters);
             return rowsAffected > 0;
         }

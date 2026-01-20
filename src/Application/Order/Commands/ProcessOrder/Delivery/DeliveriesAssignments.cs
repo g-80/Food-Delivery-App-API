@@ -4,14 +4,9 @@ public class DeliveriesAssignments : IDeliveriesAssignments
 {
     private readonly ConcurrentDictionary<int, DeliveryAssignmentJob> _activeAssignments = new();
 
-    public DeliveryAssignmentJob GetAssignmentJob(int orderId)
+    public DeliveryAssignmentJob? GetAssignmentJob(int orderId)
     {
-        if (!_activeAssignments.TryGetValue(orderId, out var job))
-        {
-            throw new InvalidOperationException(
-                $"Delivery assignment job for order {orderId} not found"
-            );
-        }
+        _activeAssignments.TryGetValue(orderId, out var job);
         return job;
     }
 

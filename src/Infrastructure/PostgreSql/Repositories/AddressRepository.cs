@@ -19,6 +19,7 @@ public class AddressRepository : BaseRepository, IAddressRepository
             ";
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             return await connection.QuerySingleOrDefaultAsync<Address>(sql, parameters);
         }
         ;
@@ -59,6 +60,7 @@ public class AddressRepository : BaseRepository, IAddressRepository
             ";
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             return await connection.QuerySingleAsync<int>(sql, parameters);
         }
     }

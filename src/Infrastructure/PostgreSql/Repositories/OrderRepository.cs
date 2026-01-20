@@ -41,6 +41,8 @@ public class OrderRepository : BaseRepository, IOrderRepository
 
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            // open manually to allow the connection to enlist in the ambient transaction
+            await connection.OpenAsync();
             return await connection.ExecuteScalarAsync<int>(sql.ToString(), parameters);
         }
     }
@@ -62,6 +64,7 @@ public class OrderRepository : BaseRepository, IOrderRepository
         var orderDictionary = new Dictionary<int, Order>();
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             await connection.QueryAsync<QueriedOrderDTO, OrderItem, Order?>(
                 sql,
                 (order, item) =>
@@ -129,6 +132,7 @@ public class OrderRepository : BaseRepository, IOrderRepository
         Delivery? delivery = null;
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             // <type to map the first part to, type to map the second part to, return type of the lambda>
             await connection.QueryAsync<
                 QueriedOrderDTO,
@@ -210,6 +214,7 @@ public class OrderRepository : BaseRepository, IOrderRepository
         ";
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             int rowsAffected = await connection.ExecuteAsync(sql, parameters);
             return rowsAffected > 0;
         }
@@ -233,6 +238,7 @@ public class OrderRepository : BaseRepository, IOrderRepository
         ";
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             return await connection.ExecuteScalarAsync<int>(sql, parameters);
         }
         ;
@@ -277,6 +283,7 @@ public class OrderRepository : BaseRepository, IOrderRepository
             ";
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             await connection.ExecuteAsync(sql, parameters);
         }
         ;
@@ -299,6 +306,7 @@ public class OrderRepository : BaseRepository, IOrderRepository
 
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             await connection.ExecuteAsync(sql, parameters);
         }
     }
@@ -315,6 +323,7 @@ public class OrderRepository : BaseRepository, IOrderRepository
 
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             int rowsAffected = await connection.ExecuteAsync(sql, parameters);
             return rowsAffected > 0;
         }

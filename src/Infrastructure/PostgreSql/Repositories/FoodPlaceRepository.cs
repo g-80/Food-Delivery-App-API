@@ -32,6 +32,7 @@ public class FoodPlaceRepository : BaseRepository, IFoodPlaceRepository
 
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             return await connection.ExecuteScalarAsync<int>(sql, parameters);
         }
     }
@@ -53,6 +54,7 @@ public class FoodPlaceRepository : BaseRepository, IFoodPlaceRepository
 
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             await connection.ExecuteAsync(sql, parameters);
         }
     }
@@ -75,6 +77,7 @@ public class FoodPlaceRepository : BaseRepository, IFoodPlaceRepository
         List<FoodPlaceItem> items = new();
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             // when food place item is null, it gets cast to FoodPlaceItem, but the properties are required(not null). whats returned in this case?
             await connection.QueryAsync<QueriedFoodPlaceDTO, Location, FoodPlaceItem, FoodPlace?>(
                 sql,
@@ -104,9 +107,13 @@ public class FoodPlaceRepository : BaseRepository, IFoodPlaceRepository
                 splitOn: "latitude, id"
             );
         }
+        if (foodPlace == null)
+        {
+            return null;
+        }
         return new FoodPlace
         {
-            Id = foodPlace!.Id,
+            Id = foodPlace.Id,
             Name = foodPlace.Name,
             Description = foodPlace.Description,
             Category = foodPlace.Category,
@@ -136,6 +143,7 @@ public class FoodPlaceRepository : BaseRepository, IFoodPlaceRepository
         List<FoodPlaceItem> items = new();
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             await connection.QueryAsync<QueriedFoodPlaceDTO, Location, FoodPlaceItem, FoodPlace?>(
                 sql,
                 (fp, loc, fpi) =>
@@ -194,6 +202,7 @@ public class FoodPlaceRepository : BaseRepository, IFoodPlaceRepository
         List<FoodPlaceItem> items = new();
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             await connection.QueryAsync<QueriedFoodPlaceDTO, Location, FoodPlaceItem, FoodPlace?>(
                 sql,
                 (fp, loc, fpi) =>
@@ -243,6 +252,7 @@ public class FoodPlaceRepository : BaseRepository, IFoodPlaceRepository
 
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             return await connection.QuerySingleAsync<int>(sql, parameters);
         }
     }
@@ -271,6 +281,7 @@ public class FoodPlaceRepository : BaseRepository, IFoodPlaceRepository
             ";
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             var result = await connection.QueryAsync<QueriedFoodPlaceDTO, Location, FoodPlace>(
                 sql,
                 (foodPlace, location) =>
@@ -319,6 +330,7 @@ public class FoodPlaceRepository : BaseRepository, IFoodPlaceRepository
             ";
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             var result = await connection.QueryAsync<QueriedFoodPlaceDTO, Location, FoodPlace>(
                 sql,
                 (foodPlace, location) =>
@@ -359,6 +371,7 @@ public class FoodPlaceRepository : BaseRepository, IFoodPlaceRepository
 
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             await connection.ExecuteAsync(sql, parameters);
         }
     }
@@ -390,6 +403,7 @@ public class FoodPlaceRepository : BaseRepository, IFoodPlaceRepository
 
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             await connection.ExecuteAsync(sql, parameters);
         }
     }

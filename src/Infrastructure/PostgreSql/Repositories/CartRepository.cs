@@ -24,6 +24,7 @@ public class CartRepository : BaseRepository, ICartRepository
 
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             await connection.ExecuteScalarAsync<int>(sql, parameters);
         }
     }
@@ -48,6 +49,7 @@ public class CartRepository : BaseRepository, ICartRepository
         var items = new List<CartItem>();
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             await connection.QueryAsync<QueriedCartDTO, CartPricing, CartItem, Cart?>(
                 sql,
                 (c, p, i) =>
@@ -136,6 +138,7 @@ public class CartRepository : BaseRepository, ICartRepository
 
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             await connection.ExecuteAsync(sql, parameters);
         }
     }

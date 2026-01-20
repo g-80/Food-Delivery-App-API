@@ -18,6 +18,7 @@ public class RefreshTokenRepository : BaseRepository, IRefreshTokenRepository
             ";
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             return await connection.QuerySingleOrDefaultAsync<RefreshToken>(sql, parameters);
         }
         ;
@@ -39,6 +40,7 @@ public class RefreshTokenRepository : BaseRepository, IRefreshTokenRepository
             ";
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             await connection.ExecuteAsync(sql, parameters);
         }
         ;
@@ -54,6 +56,7 @@ public class RefreshTokenRepository : BaseRepository, IRefreshTokenRepository
             ";
         using (var connection = new NpgsqlConnection(_connectionString))
         {
+            await connection.OpenAsync();
             await connection.ExecuteAsync(sql, parameters);
         }
         ;

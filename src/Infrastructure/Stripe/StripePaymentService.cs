@@ -17,6 +17,7 @@ public class StripePaymentService : IPaymentService
             Amount = order.Total,
             Currency = "gbp",
             CaptureMethod = "manual",
+            PaymentMethodTypes = new List<string> { "card" },
             Shipping = new ChargeShippingOptions
             {
                 Name = "Customer",
@@ -72,5 +73,15 @@ public class StripePaymentService : IPaymentService
             paymentIntentId,
             amount
         );
+    }
+
+    public async Task<Refund> GetRefundByPaymentIntentId(string paymentIntentId)
+    {
+        var service = new RefundService();
+        var refund = await service.ListAsync(new RefundListOptions
+{
+    PaymentIntent = paymentIntentId,
+});
+        return refund.First();
     }
 }

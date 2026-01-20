@@ -184,6 +184,7 @@ public class DriverRepository : BaseRepository, IDriverRepository
             ";
 
         using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync();
         await connection.ExecuteAsync(
             sql,
             new

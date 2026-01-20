@@ -28,104 +28,104 @@ jobs:
       - name: Run tests
         run: dotnet test --verbosity normal
 
-  deploy:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  # deploy:
+  #   needs: build-and-test
+  #   runs-on: ubuntu-latest
+  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION }}
+  #     - name: Configure AWS credentials
+  #       uses: aws-actions/configure-aws-credentials@v4
+  #       with:
+  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #         aws-region: ${{ vars.AWS_REGION }}
 
-      - name: Login to ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+  #     - name: Login to ECR
+  #       id: login-ecr
+  #       uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and Push Docker Image
-        id: build-and-push-image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          echo "Building image: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "Image pushed: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+  #     - name: Build and Push Docker Image
+  #       id: build-and-push-image
+  #       env:
+  #         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+  #         ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+  #         IMAGE_TAG: ${{ github.sha }}
+  #       run: |
+  #         echo "Building image: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+  #         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+  #         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+  #         echo "Image pushed: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
-      - name: Get current task definition
-        id: get-task-def
-        run: |
-          TASK_DEF_ARN=$(aws ecs describe-services \
-            --cluster ${{ vars.ECS_CLUSTER }} \
-            --services ${{ vars.ECS_SERVICE }} \
-            --query 'services[0].taskDefinition' \
-            --output text)
+  #     - name: Get current task definition
+  #       id: get-task-def
+  #       run: |
+  #         TASK_DEF_ARN=$(aws ecs describe-services \
+  #           --cluster ${{ vars.ECS_CLUSTER }} \
+  #           --services ${{ vars.ECS_SERVICE }} \
+  #           --query 'services[0].taskDefinition' \
+  #           --output text)
 
-          echo "Current task definition: $TASK_DEF_ARN"
+  #         echo "Current task definition: $TASK_DEF_ARN"
 
-          TASK_DEFINITION=$(aws ecs describe-task-definition \
-            --task-definition $TASK_DEF_ARN \
-            --query 'taskDefinition' \
-            --output json)
-          echo "$TASK_DEFINITION" > task-definition.json
+  #         TASK_DEFINITION=$(aws ecs describe-task-definition \
+  #           --task-definition $TASK_DEF_ARN \
+  #           --query 'taskDefinition' \
+  #           --output json)
+  #         echo "$TASK_DEFINITION" > task-definition.json
 
-      - name: Update task definition with new image
-        id: update-task-def
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          NEW_IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-          echo "Updating task definition with image: $NEW_IMAGE"
+  #     - name: Update task definition with new image
+  #       id: update-task-def
+  #       env:
+  #         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+  #         ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+  #         IMAGE_TAG: ${{ github.sha }}
+  #       run: |
+  #         NEW_IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+  #         echo "Updating task definition with image: $NEW_IMAGE"
 
-          # Update the image in the task definition JSON
-          jq --arg IMAGE "$NEW_IMAGE" \
-            '.containerDefinitions[0].image = $IMAGE | 
-             del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
-            task-definition.json > new-task-definition.json
+  #         # Update the image in the task definition JSON
+  #         jq --arg IMAGE "$NEW_IMAGE" \
+  #           '.containerDefinitions[0].image = $IMAGE | 
+  #            del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
+  #           task-definition.json > new-task-definition.json
 
-          cat new-task-definition.json
+  #         cat new-task-definition.json
 
-      - name: Register new task definition
-        id: register-task-def
-        run: |
-          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
-            --cli-input-json file://new-task-definition.json \
-            --query 'taskDefinition.taskDefinitionArn' \
-            --output text)
-          echo "New task definition registered: $NEW_TASK_DEF_ARN"
-          echo "task_def_arn=$NEW_TASK_DEF_ARN" >> $GITHUB_OUTPUT
+  #     - name: Register new task definition
+  #       id: register-task-def
+  #       run: |
+  #         NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+  #           --cli-input-json file://new-task-definition.json \
+  #           --query 'taskDefinition.taskDefinitionArn' \
+  #           --output text)
+  #         echo "New task definition registered: $NEW_TASK_DEF_ARN"
+  #         echo "task_def_arn=$NEW_TASK_DEF_ARN" >> $GITHUB_OUTPUT
 
-      - name: Update ECS service with new task definition
-        run: |
-          echo "Updating ECS service to use new task definition..."
-          aws ecs update-service \
-            --cluster ${{ vars.ECS_CLUSTER }} \
-            --service ${{ vars.ECS_SERVICE }} \
-            --task-definition ${{ steps.register-task-def.outputs.task_def_arn }} \
-            --force-new-deployment
+  #     - name: Update ECS service with new task definition
+  #       run: |
+  #         echo "Updating ECS service to use new task definition..."
+  #         aws ecs update-service \
+  #           --cluster ${{ vars.ECS_CLUSTER }} \
+  #           --service ${{ vars.ECS_SERVICE }} \
+  #           --task-definition ${{ steps.register-task-def.outputs.task_def_arn }} \
+  #           --force-new-deployment
 
-      - name: Wait for deployment to complete
-        run: |
-          echo "Waiting for ECS service to stabilize..."
-          aws ecs wait services-stable \
-            --cluster ${{ vars.ECS_CLUSTER }} \
-            --services ${{ vars.ECS_SERVICE }}
-          echo "Deployment completed successfully!"
+  #     - name: Wait for deployment to complete
+  #       run: |
+  #         echo "Waiting for ECS service to stabilize..."
+  #         aws ecs wait services-stable \
+  #           --cluster ${{ vars.ECS_CLUSTER }} \
+  #           --services ${{ vars.ECS_SERVICE }}
+  #         echo "Deployment completed successfully!"
 
-      - name: Deployment Status
-        run: |
-          echo "Checking ECS service status..."
-          aws ecs describe-services \
-            --cluster ${{ vars.ECS_CLUSTER }} \
-            --services ${{ vars.ECS_SERVICE }} \
-            --query 'services[0].{Running:runningCount,Desired:desiredCount,Status:status,Deployments:deployments[*].{Status:status,TaskDefinition:taskDefinition}}' \
-            --output table
+  #     - name: Deployment Status
+  #       run: |
+  #         echo "Checking ECS service status..."
+  #         aws ecs describe-services \
+  #           --cluster ${{ vars.ECS_CLUSTER }} \
+  #           --services ${{ vars.ECS_SERVICE }} \
+  #           --query 'services[0].{Running:runningCount,Desired:desiredCount,Status:status,Deployments:deployments[*].{Status:status,TaskDefinition:taskDefinition}}' \
+  #           --output table
