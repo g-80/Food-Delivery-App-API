@@ -35,14 +35,7 @@ public class CancelOrderHandler
                 return false;
             }
         }
-        else if (
-            order.CustomerId != userId
-            || (
-                order.Status != OrderStatuses.pendingConfirmation
-                && order.Status != OrderStatuses.preparing
-            )
-            || order.Delivery?.Status != DeliveryStatuses.assigningDriver
-        )
+        else if (order.CustomerId != userId || order.Status != OrderStatuses.pendingConfirmation)
         {
             return false;
         }

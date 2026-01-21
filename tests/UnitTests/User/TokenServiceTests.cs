@@ -154,7 +154,7 @@ public class TokenServiceTests
             RefreshToken = "some_token",
         };
 
-        _mockUsersRepo.Setup(r => r.GetUserById(renewRequest.UserId)).ReturnsAsync((User)null);
+        _mockUsersRepo.Setup(r => r.GetUserById(renewRequest.UserId)).ReturnsAsync((User?)null);
 
         // Act
         var result = await _tokenService.RenewAccessToken(renewRequest);
@@ -259,7 +259,7 @@ public class TokenServiceTests
         _mockUsersRepo.Setup(repo => repo.GetUserById(_testUser.Id)).ReturnsAsync(_testUser);
         _mockRefreshTokensRepo
             .Setup(repo => repo.GetRefreshTokenByUserId(_testUser.Id))
-            .ReturnsAsync((RefreshToken)null);
+            .ReturnsAsync((RefreshToken?)null);
 
         // Act
         var result = await _tokenService.RenewAccessToken(renewRequest);

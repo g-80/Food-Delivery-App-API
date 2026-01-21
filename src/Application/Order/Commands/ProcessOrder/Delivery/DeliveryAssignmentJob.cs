@@ -1,11 +1,10 @@
-using System.Collections.Concurrent;
-
 public class DeliveryAssignmentJob
 {
-    public int OrderId { get; set; }
+    public required int OrderId { get; init; }
     public int CurrentAttempt { get; set; } = 0;
     public int AssignedDriverId { get; set; } = 0;
-    public ConcurrentDictionary<int, CancellationTokenSource> PendingOffers { get; set; } = new();
-    public Dictionary<int, string> DriversRoutes { get; set; } = new();
-    public Dictionary<int, int> DriversPayments { get; set; } = new();
+    public int OfferedDriverId { get; set; } = 0;
+    public CancellationTokenSource? Cts { get; set; }
+    public string Route { get; set; } = string.Empty;
+    public int Payment { get; set; } = 0;
 }

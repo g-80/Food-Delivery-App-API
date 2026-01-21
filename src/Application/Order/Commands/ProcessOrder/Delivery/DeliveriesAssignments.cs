@@ -17,13 +17,7 @@ public class DeliveriesAssignments : IDeliveriesAssignments
 
     public DeliveryAssignmentJob CreateAssignmentJob(int orderId)
     {
-        var job = new DeliveryAssignmentJob
-        {
-            OrderId = orderId,
-            CurrentAttempt = 0,
-            AssignedDriverId = 0,
-            PendingOffers = new ConcurrentDictionary<int, CancellationTokenSource>(),
-        };
+        var job = new DeliveryAssignmentJob { OrderId = orderId };
         _activeAssignments.TryAdd(orderId, job);
         return job;
     }

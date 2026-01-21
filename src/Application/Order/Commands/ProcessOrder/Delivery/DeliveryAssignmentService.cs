@@ -111,16 +111,15 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
             return false;
         }
 
-        var tasks = nearbyDrivers
-            .Select(async driver =>
+        foreach (var driver in nearbyDrivers.Shuffle())
+        {
+            var deliveryDto = await CreateDeliveryOfferDto(job, order, foodPlace, driver);
+            if (await OfferDeliveryToDriver(job, deliveryDto, driver))
             {
-                var deliveryDto = await CreateDeliveryOfferDto(job, order, foodPlace, driver);
-                return await OfferDeliveryToDriver(job, deliveryDto, driver);
-            })
-            .ToList();
-
-        var res = await Task.WhenAll(tasks);
-        return res.Any(r => r == true);
+                return true;
+            }
+        }
+        return false;
     }
 
     private async Task<bool> OfferDeliveryToDriver(
@@ -130,7 +129,8 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
     )
     {
         var cts = new CancellationTokenSource();
-        job.PendingOffers[driver.Id] = cts;
+        job.Cts = cts;
+        job.OfferedDriverId = driver.Id;
 
         driver.Status = DriverStatuses.offered;
         await _driverRepository.UpdateDriverStatus(driver);
@@ -153,35 +153,29 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
                 driver.Id,
                 job.OrderId
             );
-            // if-check in case of a race condition
-            if (!cts.IsCancellationRequested)
-            {
-                await CancelOfferForDriver(job, driver);
-                return false;
-            }
-            // race condition - driver either accepted or rejected the offer
-            return job.AssignedDriverId == driver.Id;
+            await CancelOfferForDriver(job, driver);
+            return false;
         }
         catch (TaskCanceledException)
         {
+            if (job.AssignedDriverId == driver.Id)
+            {
+                return true;
+            }
             await CancelOfferForDriver(job, driver);
-            return job.AssignedDriverId == driver.Id;
+            return false;
         }
     }
 
     private async Task CancelOfferForDriver(DeliveryAssignmentJob job, AvailableDriver driver)
     {
-        if (job.AssignedDriverId == driver.Id)
-        {
-            return;
-        }
-
         _logger.LogInformation(
             "Cancelling delivery offer for driver {DriverId} for order {OrderId}.",
             driver.Id,
             job.OrderId
         );
-        job.PendingOffers.TryRemove(driver.Id, out _);
+        job.Cts = null;
+        job.OfferedDriverId = 0;
 
         var connection = _hubContext.Clients.User(driver.Id.ToString());
         await connection.SendAsync("DeliveryOfferCancelled");
@@ -192,22 +186,29 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
 
     public async Task AcceptDeliveryOffer(int driverId, int orderId)
     {
-        var job = _deliveriesAssignments.GetAssignmentJob(orderId);
+        var job =
+            _deliveriesAssignments.GetAssignmentJob(orderId)
+            ?? throw new Exception("Delivery assignment job was not found");
 
-        // Check if a driver is already assigned to this delivery in case of a delay
-        if (job.AssignedDriverId != 0)
+        if (job.OfferedDriverId != driverId)
         {
+            _logger.LogWarning(
+                "Unauthorised accept attempt: driver {DriverId} for order {OrderId}. Offer held by {OfferedDriverId}",
+                driverId,
+                orderId,
+                job.OfferedDriverId
+            );
             return;
         }
 
         job.AssignedDriverId = driverId;
+        job.Cts!.Cancel();
 
         _logger.LogInformation(
-            "Driver {DriverId} accepted delivery offer for order ID: {OrderId}. Cancelling pending offers for other drivers.",
+            "Driver {DriverId} accepted delivery offer for order ID: {OrderId}",
             driverId,
             orderId
         );
-        CancelAllPendingOffers(job);
 
         var driver = await _driverRepository.GetDriverById(driverId);
         if (driver == null)
@@ -221,26 +222,8 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
         var order = await _orderRepository.GetOrderById(orderId);
         order!.Delivery!.DriverId = driverId;
         order.Delivery.Status = DeliveryStatuses.pickup;
-
-        if (job.DriversRoutes.TryGetValue(driverId, out var routeJson))
-        {
-            order.Delivery.RouteJson = routeJson;
-        }
-        else
-        {
-            throw new Exception("Driver route was not found in the delivery assignment job");
-        }
-
-        if (job.DriversPayments.TryGetValue(driverId, out var paymentAmount))
-        {
-            order.Delivery.PaymentAmount = paymentAmount;
-        }
-        else
-        {
-            throw new Exception(
-                "Driver payment amount was not found in the delivery assignment job"
-            );
-        }
+        order.Delivery.RouteJson = job.Route;
+        order.Delivery.PaymentAmount = job.Payment;
 
         await _orderRepository.UpdateDelivery(orderId, order.Delivery);
 
@@ -252,37 +235,21 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
 
     public void RejectDeliveryOffer(int driverId, int orderId)
     {
-        var job = _deliveriesAssignments.GetAssignmentJob(orderId);
-
-        if (job.PendingOffers.TryRemove(driverId, out var cts))
+        var job =
+            _deliveriesAssignments.GetAssignmentJob(orderId)
+            ?? throw new Exception("Delivery assignment job was not found");
+        ;
+        if (job.OfferedDriverId != driverId)
         {
-            cts.Cancel();
-        }
-    }
-
-    public void CancelOngoingAssignment(int orderId)
-    {
-        var job = _deliveriesAssignments.GetAssignmentJob(orderId);
-        if (job == null)
+            _logger.LogWarning(
+                "Unauthorised accept attempt: driver {DriverId} for order {OrderId}. Offer held by {OfferedDriverId}",
+                driverId,
+                orderId,
+                job.OfferedDriverId
+            );
             return;
-
-        _logger.LogInformation("Cancelling delivery assignment for order ID: {OrderId}", orderId);
-
-        CancelAllPendingOffers(job);
-
-        _deliveriesAssignments.RemoveAssignmentJob(orderId);
-    }
-
-    private void CancelAllPendingOffers(DeliveryAssignmentJob job)
-    {
-        var pendingDriversIds = job.PendingOffers.Keys.ToList();
-        foreach (var driverId in pendingDriversIds)
-        {
-            if (job.PendingOffers.TryRemove(driverId, out var cts))
-            {
-                cts.Cancel();
-            }
         }
+        job.Cts!.Cancel();
     }
 
     private async Task<(MapboxRouteInfo, string)> CalculateAndStoreRouteForDriver(
@@ -299,7 +266,7 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
             new Location[] { driverLocation, foodPlaceLocation, customerLocation }
         );
 
-        job.DriversRoutes[driver.Id] = json;
+        job.Route = json;
 
         return (routeInfo, json);
     }
@@ -313,7 +280,7 @@ public class DeliveryAssignmentService : IDeliveryAssignmentService
     {
         var amount = _driverPaymentService.CalculatePayment(distance, duration);
 
-        job.DriversPayments[driverId] = amount;
+        job.Payment = amount;
 
         return amount;
     }

@@ -26,8 +26,6 @@ public class OrderCancellationService : IOrderCancellationService
             reason ?? "Not specified"
         );
 
-        StopOngoingDelivery(order);
-
         await HandlePaymentCancellation(order);
 
         order.Status = OrderStatuses.cancelled;
@@ -35,18 +33,6 @@ public class OrderCancellationService : IOrderCancellationService
 
         _logger.LogInformation("Successfully cancelled order ID: {OrderId}", order.Id);
         return true;
-    }
-
-    private void StopOngoingDelivery(Order order)
-    {
-        if (order.Delivery?.Status == DeliveryStatuses.assigningDriver)
-        {
-            _logger.LogInformation(
-                "Stopping delivery assignment for order ID: {OrderId}",
-                order.Id
-            );
-            _deliveryAssignmentService.CancelOngoingAssignment(order.Id);
-        }
     }
 
     private async Task HandlePaymentCancellation(Order order)

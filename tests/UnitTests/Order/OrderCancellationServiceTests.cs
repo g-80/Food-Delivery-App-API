@@ -77,44 +77,4 @@ public class OrderCancellationServiceTests
             Times.Once
         );
     }
-
-    [Fact]
-    public async Task CancelOrder_ShouldStopDeliveryAssignment_WhenDeliveryIsAssigningDriver()
-    {
-        // Arrange
-        var order = OrderTestsHelper.CreateTestOrder();
-        order.Payment!.Status = PaymentStatuses.PendingCapture;
-
-        // Act
-        var result = await _service.CancelOrder(order, "Test reason");
-
-        // Assert
-        result.Should().BeTrue();
-        order.Status.Should().Be(OrderStatuses.cancelled);
-
-        _deliveryAssignmentServiceMock.Verify(x => x.CancelOngoingAssignment(order.Id), Times.Once);
-        _orderRepositoryMock.Verify(x => x.UpdateOrderStatus(order), Times.Once);
-    }
-
-    [Fact]
-    public async Task CancelOrder_ShouldNotStopDeliveryAssignment_WhenDeliveryIsNotAssigningDriver()
-    {
-        // Arrange
-        var order = OrderTestsHelper.CreateTestOrder();
-        order.Delivery!.Status = DeliveryStatuses.pickup;
-        order.Payment!.Status = PaymentStatuses.Completed;
-
-        // Act
-        var result = await _service.CancelOrder(order, "Test reason");
-
-        // Assert
-        result.Should().BeTrue();
-        order.Status.Should().Be(OrderStatuses.cancelled);
-
-        _deliveryAssignmentServiceMock.Verify(
-            x => x.CancelOngoingAssignment(It.IsAny<int>()),
-            Times.Never
-        );
-        _orderRepositoryMock.Verify(x => x.UpdateOrderStatus(order), Times.Once);
-    }
 }

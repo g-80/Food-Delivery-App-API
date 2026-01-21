@@ -1,5 +1,3 @@
-using System.Collections.Concurrent;
-
 public static class OrderTestsHelper
 {
     public static Order CreateTestOrder(int id = 1)
@@ -25,7 +23,7 @@ public static class OrderTestsHelper
                 Status = PaymentStatuses.NotConfirmed,
                 StripePaymentIntentId = "pi_test123",
             },
-            Status = OrderStatuses.preparing,
+            Status = OrderStatuses.pendingConfirmation,
             CreatedAt = DateTime.UtcNow,
         };
     }
@@ -99,16 +97,17 @@ public static class OrderTestsHelper
         };
     }
 
-    public static DeliveryAssignmentJob CreateTestDeliveryAssignmentJob(int orderId)
+    public static DeliveryAssignmentJob CreateTestDeliveryAssignmentJob(
+        int orderId,
+        int offeredDriverId = 0,
+        bool shouldCreateCts = true
+    )
     {
         return new DeliveryAssignmentJob
         {
             OrderId = orderId,
-            CurrentAttempt = 0,
-            AssignedDriverId = 0,
-            PendingOffers = new ConcurrentDictionary<int, CancellationTokenSource>(),
-            DriversRoutes = new Dictionary<int, string>(),
-            DriversPayments = new Dictionary<int, int>(),
+            OfferedDriverId = offeredDriverId,
+            Cts = shouldCreateCts ? new CancellationTokenSource() : null,
         };
     }
 

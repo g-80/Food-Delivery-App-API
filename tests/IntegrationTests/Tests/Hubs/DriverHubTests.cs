@@ -247,6 +247,7 @@ public class DriverHubTests : IntegrationTestBase
         driverStatus.Should().Be(((int)DriverStatuses.delivering).ToString());
     }
 
+    // This test is random because sending RejectDeliveryOffer can arrive after the second retry for offer is sent
     // [Fact]
     // public async Task RejectDeliveryOffer_ValidOffer_ResetsDriverStatus()
     // {
@@ -302,20 +303,13 @@ public class DriverHubTests : IntegrationTestBase
     //         (_, oid) => receivedOrderId = oid
     //     );
 
-    //     _ = Task.Run(
-    //         async () =>
-    //             await TestDataBuilder.TriggerDeliveryAssignment(
-    //                 Fixture.PostgresConnectionString,
-    //                 orderId,
-    //                 Factory
-    //             )
-    //     );
+    //     _ = Task.Run(async () => await TriggerDeliveryAssignment(orderId));
 
     //     // Act
     //     // Wait for the delivery offer to arrive via websocket
     //     var offerReceived = await AsyncWaitHelper.WaitForConditionAsync(
     //         () => Task.FromResult(receivedOrderId != -1),
-    //         timeout: TimeSpan.FromMilliseconds(300),
+    //         timeout: TimeSpan.FromMilliseconds(500),
     //         pollingInterval: TimeSpan.FromMilliseconds(25)
     //     );
     //     offerReceived.Should().BeTrue("delivery offer should be received");

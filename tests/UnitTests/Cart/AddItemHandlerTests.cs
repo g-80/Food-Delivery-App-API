@@ -115,7 +115,7 @@ public class AddItemHandlerTests
         int itemId = 1;
         _foodPlaceRepoMock
             .Setup(repo => repo.GetFoodPlaceByItemId(itemId))
-            .ReturnsAsync((FoodPlace)null);
+            .ReturnsAsync((FoodPlace?)null);
         _cartRepoMock.Setup(repo => repo.GetCartByCustomerId(_cart.CustomerId)).ReturnsAsync(_cart);
 
         var req = new AddItemCommand { ItemId = itemId, Quantity = 2 };
