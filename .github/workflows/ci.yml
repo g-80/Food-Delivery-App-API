@@ -26,6 +26,9 @@ jobs:
         run: dotnet build --no-restore --configuration Release
 
       - name: Run tests
+        env:
+          Jwt__Key: ${{ secrets.Jwt__Key }}
+          Stripe__SecretKey: ${{ secrets.Stripe__SecretKey }}
         run: dotnet test --verbosity normal
 
   # deploy:
