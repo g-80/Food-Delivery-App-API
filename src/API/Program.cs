@@ -19,6 +19,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseExceptionHandler();
+app.UseCors();
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
@@ -26,9 +27,10 @@ app.MapHealthChecks("/health");
 
 app.MapHub<DriverHub>("/hubs/driver");
 app.MapHub<FoodPlaceHub>("/hubs/foodplace");
+app.MapHub<CustomerHub>("/hubs/customer");
 
 Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 var dbInitialiser = app.Services.GetRequiredService<IDatabaseInitialiser>();
-dbInitialiser.InitialiseDatabase(false);
+dbInitialiser.InitialiseDatabase();
 
 app.Run();

@@ -81,10 +81,10 @@ public class OrdersController : ControllerBase
                 string endpointSecret =
                     _config.GetValue<string>("Stripe:WebhookSecret")
                     ?? throw new Exception("Stripe webhook secret not found");
-                stripeEvent = EventUtility.ConstructEvent(json, signatureHeader, endpointSecret);
+                stripeEvent = EventUtility.ConstructEvent(json, signatureHeader, endpointSecret, throwOnApiVersionMismatch: false);
             }
 
-            if (stripeEvent.Type == EventTypes.PaymentIntentSucceeded)
+            if (stripeEvent.Type == EventTypes.PaymentIntentAmountCapturableUpdated)
             {
                 var paymentIntent = stripeEvent.Data.Object as PaymentIntent;
                 _logger.LogInformation(

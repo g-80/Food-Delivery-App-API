@@ -49,6 +49,16 @@ namespace FoodDeliveryAppAPI.Api
                 });
             builder.Services.AddSignalR();
             builder.Services.AddHealthChecks();
+            builder.Services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(policy =>
+                {
+                    var allowedOrigins = builder
+                        .Configuration.GetSection("Cors:AllowedOrigins")
+                        .Get<string[]>() ?? throw new Exception("Could not find CORS Allowed Origins");
+                    policy.WithOrigins(allowedOrigins).AllowAnyMethod().AllowAnyHeader().AllowCredentials();;
+                });
+            });
         }
     }
 }

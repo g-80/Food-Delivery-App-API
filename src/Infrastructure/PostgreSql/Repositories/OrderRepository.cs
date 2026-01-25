@@ -71,18 +71,21 @@ public class OrderRepository : BaseRepository, IOrderRepository
                 {
                     if (!orderDictionary.TryGetValue(order.Id, out var currentOrder))
                     {
-                        currentOrder = new Order
-                        {
-                            Id = order.Id,
-                            CustomerId = order.CustomerId,
-                            FoodPlaceId = order.FoodPlaceId,
-                            DeliveryAddressId = order.DeliveryAddressId,
-                            ServiceFee = order.ServiceFee,
-                            DeliveryFee = order.DeliveryFee,
-                            Status = order.Status,
-                            CreatedAt = order.CreatedAt,
-                            Items = new List<OrderItem>() { item }.AsReadOnly(),
-                        };
+                        orderDictionary.Add(
+                            order.Id,
+                            new Order
+                            {
+                                Id = order.Id,
+                                CustomerId = order.CustomerId,
+                                FoodPlaceId = order.FoodPlaceId,
+                                DeliveryAddressId = order.DeliveryAddressId,
+                                ServiceFee = order.ServiceFee,
+                                DeliveryFee = order.DeliveryFee,
+                                Status = order.Status,
+                                CreatedAt = order.CreatedAt,
+                                Items = new List<OrderItem>() { item }.AsReadOnly(),
+                            }
+                        );
                     }
                     else
                     {

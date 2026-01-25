@@ -57,7 +57,7 @@ public class TokenService : ITokenService
             issuer: _configuration.GetValue<string>("Jwt:Issuer"),
             audience: _configuration.GetValue<string>("Jwt:Audience"),
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(60),
+            expires: DateTime.Parse("2028-01-24"),
             signingCredentials: creds
         );
 

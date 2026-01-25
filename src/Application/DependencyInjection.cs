@@ -37,6 +37,10 @@ namespace FoodDeliveryAppAPI.Application
             builder.Services.AddSingleton<IDeliveriesAssignments, DeliveriesAssignments>();
             builder.Services.AddScoped<IDriverPaymentService, DriverPaymentService>();
 
+            builder.Services.AddSingleton<ICustomerConnections, CustomerConnections>();
+            builder.Services.AddScoped<IRouteSimulationService, RouteSimulationService>();
+            builder.Services.AddScoped<IDemoOrderProcessingService, DemoOrderProcessingService>();
+
             builder.Services.AddScoped<UpdateETAHandler>();
 
             builder.Services.AddScoped<LogInUserHandler>();
